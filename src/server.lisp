@@ -40,6 +40,9 @@ The connection is accepted and emitted with the `connection' event."))
 (defmethod connection ((server server))
   (let* ((peer-sock (sockets:accept-connection (sock-of (acceptor server)) :wait t))
          (hinge-sock (make-instance 'socket :sock peer-sock)))
+    (add-listener hinge-sock "close"
+                  (lambda (sock)
+                    (setf (peers server) (remove sock (peers server)))))
     (push hinge-sock (peers server))
     (prog1 server
       (emit server "connection" hinge-sock))))
