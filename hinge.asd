@@ -11,4 +11,5 @@
                         ((:file "package")
                          (:file "hinge" :depends-on ("package"))
                          (:file "generics" :depends-on ("package"))
-                         (:file "methods" :depends-on ("generics" "hinge"))))))
+                         (:file "methods" :depends-on ("generics" "hinge"))
+                         (:file "emitter" :depends-on ("hinge" "generics"))))))
