@@ -5,7 +5,10 @@
 (defsystem :hinge
   :description "A synonym for node. Something like an evented framework in and for CL."
   :version "0.0.0"
-  :depends-on (:log5 :ev :iolib)
+  :depends-on (:ev
+               :log5
+               :alexandria
+               :iolib)
 
   :components ((:module "src" :components
                         ((:file "package")

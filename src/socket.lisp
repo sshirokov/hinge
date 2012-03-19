@@ -8,6 +8,15 @@
    (watchers :initform (vector nil nil)
              :accessor watchers
              :documentation "#(read write) watchers.")
+   (writes :initform (list)
+           :accessor writes
+           :documentation "List of 3-vectors in the format
+#(buffer offset callback) of pending write operations. When possible
+write operations are performed from the head of the list. Each write
+a portion of the buffer will be written and a new offset into the
+buffer is stored. If the entire buffer is sent, callback is invoked,
+if provided. When the writes list becomes empty a \"drain\" event
+is emitted.")
 
    (fd :initform nil
        :initarg :fd
@@ -22,6 +31,8 @@ they are first disposed."))
 
 (defgeneric on-read (socket)
   (:documentation "Fired to handle a ready for read operation on the socket."))
+(defgeneric on-write (socket)
+  (:documentation "Fired to handle a ready for write operation on this socket."))
 
 (defgeneric connect (socket port &optional host)
   (:documentation "Connect `socket' to `port' on `host'.
@@ -35,6 +46,13 @@ completes."))
 (defgeneric end (socket)
   (:documentation "Close the `socket'."))
 
+;; Interface methods
+(defmethod send ((socket socket) (data sequence) &optional (callback (lambda (sock) (declare (ignore sock)))))
+  (let ((watcher (svref (watchers socket) 1)))
+    (appendf (writes socket)
+             (list (vector data 0 callback)))
+    (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
+      (ev:start-watcher *hinge* watcher))))
 
 ;; Event methods
 (defmethod on-read ((socket socket))
@@ -46,6 +64,24 @@ completes."))
           (ev:stop-watcher *hinge* (svref (watchers socket) 0))
           (emit socket "close" socket))
         (emit socket "data" (subseq data 0 size)))))
+
+(defmethod on-write ((socket socket))
+  (let ((data (first (writes socket))))
+    (if data
+        (let* ((buffer (svref data 0))
+               (start (svref data 1))
+               (callback (svref data 2))
+               (written (sockets:send-to (sock socket) buffer :start start :dont-wait t)))
+          (when (= (+ start written) (length buffer))
+            (pop (writes socket))
+            (set-timeout 0 (lambda ()
+                             (format t "Invoking callback: ~A~%" callback)
+                             (funcall callback socket)))))
+
+        (progn
+          (format t "Socket drained: ~A~%" socket)
+          (ev:stop-watcher *hinge* (svref (watchers socket) 1) :keep-callback t)
+          (emit socket "drain" socket)))))
 
 ;; Init Methods
 (defmethod initialize-instance :after ((inst socket) &key)
@@ -68,4 +104,13 @@ completes."))
                            (declare (ignore ev watcher events))
                            (on-read socket)))
     (ev:start-watcher *hinge* read-watcher)
-    (setf (svref (watchers socket) 0) read-watcher)))
+    (setf (svref (watchers socket) 0) read-watcher))
+
+  (let ((write-watcher (make-instance 'ev:ev-io-watcher)))
+    (ev:set-io-watcher *hinge* write-watcher (fd socket) ev:EV_WRITE
+                       #'(lambda (ev watcher events)
+                           (declare (ignore ev watcher events))
+                           (on-write socket)))
+    (unless (null (writes socket))
+      (ev:start-watcher *hinge* write-watcher))
+    (setf (svref (watchers socket) 1) write-watcher)))
