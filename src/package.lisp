@@ -24,6 +24,8 @@ to be invoked after `timeout' elapses."))
 (defgeneric set-interval (interval callback)
   (:documentation "Crates and registers a `callback' of no arguments
 to be invoked every `timeout'"))
+(defgeneric clear (handle)
+  (:documentation "Clear the registration of a watcher (e.g. timeout or interval) named by `handle'"))
 
 ;; Methods
 (defmethod run ()
@@ -39,7 +41,7 @@ instance then bind a new one after completion."
   "Typechecking and sanitizing wrapper to add a timeout callback."
   (flet ((timeout-fun (l w e)
            (declare (ignore l e))
-           (ev:stop-watcher *hinge* w)
+           (clear w)
            (funcall callback)))
     (let ((timeout-cb (make-instance 'ev:ev-timer)))
       (ev:set-timer *hinge* timeout-cb #'timeout-fun (coerce timeout 'double-float))
@@ -57,3 +59,7 @@ instance then bind a new one after completion."
       (ev:set-timer *hinge* timeout-cb #'timeout-fun timeout :repeat timeout)
       (ev:start-watcher *hinge* timeout-cb)
       timeout-cb)))
+
+(defmethod clear ((handle ev:ev-watcher))
+  (format t "Clearing: ~A~%" handle)
+  (ev:stop-watcher *hinge* handle))
