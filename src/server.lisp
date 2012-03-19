@@ -1,10 +1,5 @@
 (in-package :hinge)
 
-;; Helper
-(defun socket-fd (socket)
-  "Translate a heavy `socket' object to a numeric file descriptor."
-  (sb-bsd-sockets:socket-file-descriptor (usocket:socket socket)))
-
 ;; Class
 (defclass server (emitter)
   ((acceptor :initform (vector nil nil)
@@ -33,14 +28,14 @@ The connection is accepted and emitted with the `connection' event."))
                            (connection server)))
     (ev:start-watcher *hinge* watcher)
 
-    (setf (svref (acceptor server) 0) sock
-          (svref (acceptor server) 1) watcher)
+    (setf (sock-of (acceptor server)) sock
+          (watcher-of (acceptor server)) watcher)
 
     (prog1 server
       (emit server "listening" server))))
 
 (defmethod connection ((server server))
-  (let ((peer-sock (usocket:socket-accept (svref (acceptor server) 0))))
+  (let ((peer-sock (usocket:socket-accept (sock-of (acceptor server)))))
     (push peer-sock (peers server))
     (prog1 server
       (emit server "connection" peer-sock))))
@@ -50,6 +45,6 @@ The connection is accepted and emitted with the `connection' event."))
 from arriving."
   (declare (ignore abort))
   (when (acceptor server)
-    ;; TODO: Stop the watcher
+    (ev:stop-watcher *hinge* (watcher-of (acceptor server)))
     (usocket:socket-close (acceptor server))
-    (emit server "closed" server)))
+    (emit server "close" server)))
