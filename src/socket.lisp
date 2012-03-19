@@ -20,6 +20,9 @@
 and add them to the reactor. If any previous watchers exist
 they are first disposed."))
 
+(defgeneric on-read (socket)
+  (:documentation "Fired to handle a ready for read operation on the socket."))
+
 (defgeneric connect (socket port &optional host)
   (:documentation "Connect `socket' to `port' on `host'.
 If host is omitted localhost is assumed."))
@@ -33,6 +36,16 @@ completes."))
   (:documentation "Close the `socket'."))
 
 
+;; Event methods
+(defmethod on-read ((socket socket))
+  (multiple-value-bind (data size)
+      (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
+    (if (zerop size)
+        (progn
+          (close (sock socket))
+          (ev:stop-watcher *hinge* (svref (watchers socket) 0))
+          (emit socket "close" socket))
+        (emit socket "data" (subseq data 0 size)))))
 
 ;; Init Methods
 (defmethod initialize-instance :after ((inst socket) &key)
@@ -52,14 +65,7 @@ completes."))
   (let ((read-watcher (make-instance 'ev:ev-io-watcher)))
     (ev:set-io-watcher *hinge* read-watcher (fd socket) ev:EV_READ
                        #'(lambda (ev watcher events)
-                           (multiple-value-bind (data size)
-                               (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
-                             (if (zerop size)
-                                 (progn
-                                   (emit socket "close" socket)
-                                   (close (sock socket))
-                                   (ev:stop-watcher ev watcher))
-                                 (emit socket "data" (subseq data 0 size))))))
-
+                           (declare (ignore ev watcher events))
+                           (on-read socket)))
     (ev:start-watcher *hinge* read-watcher)
     (setf (svref (watchers socket) 0) read-watcher)))
