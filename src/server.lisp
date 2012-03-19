@@ -18,8 +18,11 @@ given `port' and `host', if given. If `host' the server will listen on any inter
 The connection is accepted and emitted with the `connection' event."))
 
 ;; Methods
-(defmethod bind ((server server) (port number) &optional (host usocket:*wildcard-host*))
-  (let* ((sock (usocket:socket-listen host port :reuse-address t))
+(defmethod bind ((server server) (port number) &optional (host sockets:+ipv4-unspecified+))
+  (let* ((sock (sockets:make-socket :ipv6 nil :connect :passive
+                                    :local-host host
+                                    :local-port port
+                                    :reuse-address t))
          (watcher (make-instance 'ev:ev-io-watcher)))
 
     (ev:set-io-watcher *hinge* watcher (socket-fd sock) ev:EV_READ
@@ -35,7 +38,7 @@ The connection is accepted and emitted with the `connection' event."))
       (emit server "listening" server))))
 
 (defmethod connection ((server server))
-  (let* ((peer-sock (usocket:socket-accept (sock-of (acceptor server))))
+  (let* ((peer-sock (sockets:accept-connection (sock-of (acceptor server)) :wait t))
          (hinge-sock (make-instance 'socket :sock peer-sock)))
     (push hinge-sock (peers server))
     (prog1 server
@@ -47,5 +50,5 @@ from arriving."
   (declare (ignore abort))
   (when (acceptor server)
     (ev:stop-watcher *hinge* (watcher-of (acceptor server)))
-    (usocket:socket-close (acceptor server))
+    (close (socket-of (acceptor server)))
     (emit server "close" server)))

@@ -5,9 +5,9 @@
   ((sock :initform nil
          :initarg :sock
          :accessor sock)
-   (watchers :initform (vector nil nil nil)
+   (watchers :initform (vector nil nil)
              :accessor watchers
-             :documentation "#(read write error) watchers.")
+             :documentation "#(read write) watchers.")
 
    (fd :initform nil
        :initarg :fd
@@ -46,19 +46,20 @@ completes."))
 
   (when (svref (watchers socket) 1) ;; Writer watcher
     (ev:stop-watcher *hinge* (svref (watchers socket) 1))
-    (setf (svref (watchers socket) 1) nil))
-
-  (when (svref (watchers socket) 2) ;; Error watcher
-    (ev:stop-watcher *hinge* (svref (watchers socket) 2))
-    (setf (svref (watchers socket) 2) nil)))
+    (setf (svref (watchers socket) 1) nil)))
 
 (defmethod init-watchers ((socket socket))
   (let ((read-watcher (make-instance 'ev:ev-io-watcher)))
     (ev:set-io-watcher *hinge* read-watcher (fd socket) ev:EV_READ
                        #'(lambda (ev watcher events)
-                           (let* ((data (make-array (* 8 1024) :initial-element nil))
-                                  (got (read-sequence data (usocket:socket-stream (sock socket)))))
-                             (emit socket "data" (subseq data 0 got)))))
+                           (multiple-value-bind (data size)
+                               (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
+                             (if (zerop size)
+                                 (progn
+                                   (emit socket "close" socket)
+                                   (close (sock socket))
+                                   (ev:stop-watcher ev watcher))
+                                 (emit socket "data" (subseq data 0 size))))))
 
     (ev:start-watcher *hinge* read-watcher)
     (setf (svref (watchers socket) 0) read-watcher)))
