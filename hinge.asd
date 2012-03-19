@@ -8,4 +8,7 @@
   :depends-on (:log5 :ev)
 
   :components ((:module "src" :components
-                        ((:file "package")))))
+                        ((:file "package")
+                         (:file "hinge" :depends-on ("package"))
+                         (:file "generics" :depends-on ("package"))
+                         (:file "methods" :depends-on ("generics" "hinge"))))))
