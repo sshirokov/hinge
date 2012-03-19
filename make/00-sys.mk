@@ -4,7 +4,10 @@ LISP_PREFIX ?= CL_SOURCE_REGISTRY='$(ROOT):$(ROOT)/vendor//'
 LISP ?= $(LISP_PREFIX) $(LISP_BIN)
 SHUTUP = > /dev/null 2> /dev/null
 
-.PHONY: lisp-clean lisp-fasl-clean
+.PHONY: lisp-cmd lisp-clean lisp-fasl-clean
+
+lisp: $(LISP_BIN) | init
+	$(LISP)
 
 lisp-clean:
 	@echo "=> Clearing common-lisp cache"
