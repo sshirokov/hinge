@@ -9,7 +9,7 @@ quicklisp: $(LISP_BIN) $(QL_SETUP) | quicklisp-test
 
 quicklisp-test:
 	@echo "=> Verifying Quicklisp load ...\c"
-	@$(LISP) --eval '(sb-ext:disable-debugger)' \
+	@$(LISP) $(NODEBUG) \
 			 --load $(QL_SETUP) \
 	         --eval '(quit :unix-status (if (find-package :ql) 0 1))' $(SHUTUP) \
 	         || { E=$$?; echo " [ERROR]"; exit $$E; }
@@ -18,6 +18,6 @@ quicklisp-test:
 $(QL_SETUP):
 	@echo "=> Installing quicklisp"
 	@curl   -L $(QL_URL) > /tmp/quicklisp.lisp; \
-		$(LISP) --eval '(sb-ext:disable-debugger)' --load /tmp/quicklisp.lisp \
+		$(LISP) $(NODEBUG) --load /tmp/quicklisp.lisp \
 		--eval '(quicklisp-quickstart:install :path "$(QL_ROOT_PATH)/")' \
 		--eval '(quit)';
