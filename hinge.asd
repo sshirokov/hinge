@@ -19,5 +19,6 @@
                          ;; Event emitter
                          (:file "emitter" :depends-on ("hinge" "generics"))
 
-                         ;; Server
-                         (:file "server" :depends-on ("emitter"))))))
+                         ;; Network
+                         (:file "socket" :depends-on ("emitter"))
+                         (:file "server" :depends-on ("emitter" "helpers" "socket"))))))

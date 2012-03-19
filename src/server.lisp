@@ -35,10 +35,11 @@ The connection is accepted and emitted with the `connection' event."))
       (emit server "listening" server))))
 
 (defmethod connection ((server server))
-  (let ((peer-sock (usocket:socket-accept (sock-of (acceptor server)))))
-    (push peer-sock (peers server))
+  (let* ((peer-sock (usocket:socket-accept (sock-of (acceptor server))))
+         (hinge-sock (make-instance 'socket :sock peer-sock)))
+    (push hinge-sock (peers server))
     (prog1 server
-      (emit server "connection" peer-sock))))
+      (emit server "connection" hinge-sock))))
 
 (defmethod close ((server server) &key abort)
   "Close the accepting socket to prevent further connections
