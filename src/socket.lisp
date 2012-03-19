@@ -34,7 +34,7 @@ completes."))
 
 
 
-;; Methods
+;; Init Methods
 (defmethod initialize-instance :after ((inst socket) &key)
   (setf (fd inst) (or (fd inst) (socket-fd (sock inst))))
   (init-watchers inst))
