@@ -10,9 +10,14 @@
   :components ((:module "src" :components
                         ((:file "package")
                          (:file "helpers" :depends-on ("package"))
+
+                         ;; Basic reactor
                          (:file "hinge" :depends-on ("package" "helpers"))
                          (:file "generics" :depends-on ("package"))
                          (:file "methods" :depends-on ("generics" "hinge"))
+
+                         ;; Event emitter
                          (:file "emitter" :depends-on ("hinge" "generics"))
 
+                         ;; Server
                          (:file "server" :depends-on ("emitter"))))))
