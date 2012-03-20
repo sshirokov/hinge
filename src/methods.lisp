@@ -34,5 +34,4 @@ instance then bind a new one after completion."
       timeout-cb)))
 
 (defmethod clear ((handle ev:ev-watcher))
-  (format t "Clearing: ~A~%" handle)
   (ev:stop-watcher *hinge* handle))
