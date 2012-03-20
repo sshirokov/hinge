@@ -10,7 +10,7 @@ Clone and init the project
 
 ```sh
 # Clone the repo
-$ git clone https://sshirokov@github.com/sshirokov/hinge.git
+$ git clone https://github.com/sshirokov/hinge.git
 $ cd hinge
 
 # Init the enviornment
