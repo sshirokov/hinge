@@ -12,3 +12,8 @@ to be invoked after `timeout' elapses."))
 to be invoked every `timeout'"))
 (defgeneric clear (handle)
   (:documentation "Clear the registration of a watcher (e.g. timeout or interval) named by `handle'"))
+
+;; Wrappers
+(defmacro defer (&body forms)
+  "Defer execution of `forms' to later, but very soon."
+  `(set-timeout 0 (lambda () ,@forms)))
