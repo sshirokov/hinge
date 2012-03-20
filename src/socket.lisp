@@ -72,11 +72,11 @@ completes."))
                (start (svref data 1))
                (callback (svref data 2))
                (written (sockets:send-to (sock socket) buffer :start start :dont-wait t)))
-          (when (= (+ start written) (length buffer))
+          (when (= (incf (svref data 1) written) (length buffer))
             (pop (writes socket))
-            (set-timeout 0 (lambda ()
-                             (format t "Invoking callback: ~A~%" callback)
-                             (funcall callback socket)))))
+            (defer
+              (format t "Invoking callback: ~A~%" callback)
+              (funcall callback socket))))
 
         (progn
           (format t "Socket drained: ~A~%" socket)

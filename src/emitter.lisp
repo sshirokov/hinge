@@ -37,7 +37,7 @@ only fires once, then it is removed."))
     (flet ((deliver (cb)
              (when (remhash cb (oneshots emitter))
                (remove-listener emitter event cb))
-             (set-timeout 0 #'(lambda () (apply cb args)))))
+             (defer (apply cb args))))
       (mapc #'deliver registered))))
 
 (defmethod add-listener ((emitter emitter) (event string) (callback symbol))
