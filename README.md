@@ -67,25 +67,17 @@ You can watch the server react in the REPL. Somewhat like this:
 
 ```
 Starting echo server at 3541190006
-Clearing: #<EV-TIMER {1007CB5FB3}>
 #<SERVER {1007B10003}> is listening!
-Clearing: #<EV-TIMER {10054BF3E3}>
 New client: #<SOCKET {10053E2B03}>
-Clearing: #<EV-TIMER {1005752B23}>
 Echoing: "Hello World.
 "
-Clearing: #<EV-TIMER {1005A042D3}>
 Invoking callback: #<FUNCTION (LAMBDA (SOCK)) {1007E0DD2B}>
 Data written to peer.
 Socket drained: #<SOCKET {10053E2B03}>
-Clearing: #<EV-TIMER {1005A0B1A3}>
 Echoing: "Echo
 "
-Clearing: #<EV-TIMER {1005A0D343}>
 Invoking callback: #<FUNCTION (LAMBDA (SOCK)) {1007E0DD2B}>
 Data written to peer.
 Socket drained: #<SOCKET {10053E2B03}>
-Clearing: #<EV-TIMER {1005A244C3}>
-Clearing: #<EV-TIMER {1005A24603}>
 Peer: #<SOCKET {10053E2B03}> left.
 ```
