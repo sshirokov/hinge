@@ -54,15 +54,19 @@ completes."))
     (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
       (ev:start-watcher *hinge* watcher))))
 
+(defmethod end ((socket socket))
+  "Close the socket, emit \"close\" event."
+  (close (sock socket))
+  (ev:stop-watcher *hinge* (svref (watchers socket) 0))
+  (ev:stop-watcher *hinge* (svref (watchers socket) 1))
+  (emit socket "close" socket))
+
 ;; Event methods
 (defmethod on-read ((socket socket))
   (multiple-value-bind (data size)
       (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
     (if (zerop size)
-        (progn
-          (close (sock socket))
-          (ev:stop-watcher *hinge* (svref (watchers socket) 0))
-          (emit socket "close" socket))
+        (end socket)
         (emit socket "data" (subseq data 0 size)))))
 
 (defmethod on-write ((socket socket))
