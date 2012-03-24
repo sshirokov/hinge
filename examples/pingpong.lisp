@@ -20,9 +20,9 @@
                                                                    (babel:octets-to-string data))))
                                   (cond ((string= "DIE" data-str)
                                          (format t "Asked to die.~%")
-                                         (end peer)
+                                         (close peer)
                                          (close *server*)
-                                         (end *client*))
+                                         (close *client*))
                                         ((string= "PING" data-str)
                                          (format t "Ponging ~A~%" peer)
                                          (send peer (babel:string-to-octets "PONG")))
@@ -30,7 +30,7 @@
                                          (format t "Unknown request, booting ~A: ~S~%" peer data-str)
                                          (send peer (babel:string-to-octets "Invalid request!")
                                                (lambda (sock)
-                                                 (end sock))))))))
+                                                 (close sock))))))))
 
                 (add-listener peer "close"
                               (lambda (peer)

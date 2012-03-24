@@ -43,8 +43,6 @@ If host is omitted localhost is assumed."))
  (funcall callback socket offset data-written).
 \"drain\" will be emitted on the socket when the write operation
 completes."))
-(defgeneric end (socket)
-  (:documentation "Close the `socket'."))
 
 ;; Interface methods
 (defmethod connect ((socket socket) (port number) &optional (host #(127 0 0 1)))
@@ -60,7 +58,7 @@ completes."))
     (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
       (ev:start-watcher *hinge* watcher))))
 
-(defmethod end ((socket socket))
+(defmethod close ((socket socket) &key abort)
   "Close the socket, emit \"close\" event."
   (close (sock socket))
   (ev:stop-watcher *hinge* (svref (watchers socket) 0))
@@ -73,9 +71,9 @@ completes."))
       (multiple-value-bind (data size)
           (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
         (if (zerop size)
-            (end socket)
+            (close socket)
             (emit socket "data" (subseq data 0 size))))
-      (end socket)))
+      (close socket)))
 
 (defmethod on-write ((socket socket))
   (let ((data (first (writes socket))))
