@@ -2,7 +2,7 @@
 
 ;; Class
 (defclass socket (emitter)
-  ((sock :initform nil
+  ((sock :initform (sockets:make-socket :ipv6 nil :reuse-address t)
          :initarg :sock
          :accessor sock)
    (watchers :initform (vector nil nil)
@@ -47,6 +47,12 @@ completes."))
   (:documentation "Close the `socket'."))
 
 ;; Interface methods
+(defmethod connect ((socket socket) (port number) &optional (host #(127 0 0 1)))
+  (prog1 socket
+    (format t "Connect: ~A~%"
+            (sockets:connect (sock socket) (sockets:make-address host) :port port))
+    (emit socket "connect" socket)))
+
 (defmethod send ((socket socket) (data sequence) &optional (callback (lambda (sock) (declare (ignore sock)))))
   (let ((watcher (svref (watchers socket) 1)))
     (appendf (writes socket)
@@ -63,11 +69,13 @@ completes."))
 
 ;; Event methods
 (defmethod on-read ((socket socket))
-  (multiple-value-bind (data size)
-      (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
-    (if (zerop size)
-        (end socket)
-        (emit socket "data" (subseq data 0 size)))))
+  (if (sockets:socket-open-p (sock socket))
+      (multiple-value-bind (data size)
+          (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
+        (if (zerop size)
+            (end socket)
+            (emit socket "data" (subseq data 0 size))))
+      (end socket)))
 
 (defmethod on-write ((socket socket))
   (let ((data (first (writes socket))))
@@ -79,7 +87,6 @@ completes."))
           (when (= (incf (svref data 1) written) (length buffer))
             (pop (writes socket))
             (defer
-              (format t "Invoking callback: ~A~%" callback)
               (funcall callback socket))))
 
         (progn
