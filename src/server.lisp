@@ -53,5 +53,5 @@ from arriving."
   (declare (ignore abort))
   (when (acceptor server)
     (ev:stop-watcher *hinge* (watcher-of (acceptor server)))
-    (close (socket-of (acceptor server)))
+    (close (sock-of (acceptor server)))
     (emit server "close" server)))
