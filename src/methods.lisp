@@ -9,7 +9,8 @@ instance then bind a new one after completion."
 
 (defmethod run ((hinge hinge))
   "Run the event loop held by `hinge'"
-  (ev:event-dispatch hinge nil))
+  (unwind-protect (ev:event-dispatch hinge nil)
+    (close (bg-pool hinge))))
 
 (defmethod set-timeout (hinge timeout (callback symbol))
   "Fetches the function value of `callback' and passes it down."

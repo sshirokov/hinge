@@ -16,9 +16,12 @@
                          (:file "helpers" :depends-on ("package"))
 
                          ;; Basic reactor
-                         (:file "hinge" :depends-on ("package" "helpers"))
+                         (:file "hinge" :depends-on ("package" "helpers" "pool"))
                          (:file "generics" :depends-on ("package"))
                          (:file "methods" :depends-on ("generics" "hinge"))
+
+                         ;; Async job pool
+                         (:file "pool" :depends-on ("package" "generics"))
 
                          ;; Event emitter
                          (:file "emitter" :depends-on ("hinge" "generics"))
