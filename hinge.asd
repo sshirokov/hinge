@@ -6,13 +6,17 @@
   :description "A synonym for node. Something like an evented framework in and for CL."
   :version "0.0.0"
   :depends-on (:ev
+               :zmq
                :log5
                :alexandria
                :iolib
                :uuid)
 
   :components ((:module "src" :components
-                        ((:file "package")
+                        ((:module "patches" :components
+                                  ((:file "zmq")))
+
+                         (:file "package" :depends-on ("patches"))
                          (:file "helpers" :depends-on ("package"))
 
                          ;; Basic reactor
@@ -28,4 +32,5 @@
 
                          ;; Network
                          (:file "socket" :depends-on ("emitter"))
+                         (:file "zmq-socket" :depends-on ("socket"))
                          (:file "server" :depends-on ("emitter" "helpers" "socket"))))))
