@@ -58,9 +58,13 @@ completes."))
     (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
       (ev:start-watcher (owner socket) watcher))))
 
+(defmethod close :before ((socket socket) &key abort)
+  "Close the actual socket before the close method cleans up the watchers
+and emits the event."
+  (close (sock socket)))
+
 (defmethod close ((socket socket) &key abort)
   "Close the socket, emit \"close\" event."
-  (close (sock socket))
   (ev:stop-watcher (owner socket) (svref (watchers socket) 0))
   (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
   (emit socket "close" socket))
