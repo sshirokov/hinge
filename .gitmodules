@@ -1,3 +1,9 @@
 [submodule "vendor/cl-ev"]
 	path = vendor/cl-ev
 	url = git@github.com:sshirokov/cl-ev.git
+[submodule "vendor/cffi"]
+	path = vendor/cffi
+	url = git://common-lisp.net/projects/cffi/cffi.git
+[submodule "vendor/lisp-zmq"]
+	path = vendor/lisp-zmq
+	url = git://github.com/galdor/lisp-zmq.git
