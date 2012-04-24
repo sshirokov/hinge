@@ -25,11 +25,11 @@ The connection is accepted and emitted with the `connection' event."))
                                     :reuse-address t))
          (watcher (make-instance 'ev:ev-io-watcher)))
 
-    (ev:set-io-watcher *hinge* watcher (socket-fd sock) ev:EV_READ
+    (ev:set-io-watcher (owner server) watcher (socket-fd sock) ev:EV_READ
                        #'(lambda (l w e)
                            (declare (ignore l w e))
                            (connection server)))
-    (ev:start-watcher *hinge* watcher)
+    (ev:start-watcher (owner server) watcher)
 
     (setf (sock-of (acceptor server)) sock
           (watcher-of (acceptor server)) watcher)
@@ -52,6 +52,6 @@ The connection is accepted and emitted with the `connection' event."))
 from arriving."
   (declare (ignore abort))
   (when (acceptor server)
-    (ev:stop-watcher *hinge* (watcher-of (acceptor server)))
+    (ev:stop-watcher (owner server) (watcher-of (acceptor server)))
     (close (sock-of (acceptor server)))
     (emit server "close" server)))

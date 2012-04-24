@@ -40,13 +40,14 @@
 
 (add-listener *client* "connect"
               (lambda (sock)
-                (let ((pinger (set-interval 5 (lambda ()
-                                                (format t "Pinging!~%")
-                                                (send sock (babel:string-to-octets "PING"))))))
+                (let ((pinger (set-interval (owner sock) 5
+                                            (lambda ()
+                                              (format t "Pinging!~%")
+                                              (send sock (babel:string-to-octets "PING"))))))
                   (add-listener sock "close"
                                 (lambda (s)
-                                  (format t "Stopping the pinger.~%"
-                                  (clear pinger)))))))
+                                  (format t "Stopping the pinger.~%")
+                                  (clear (owner sock) pinger))))))
 
 ;; Bind the server
 (bind *server* 4545)
@@ -54,4 +55,4 @@
 (connect *client* 4545)
 
 ;; Run the event loop
-(run)
+(run :default)

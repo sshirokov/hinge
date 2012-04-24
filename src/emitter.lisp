@@ -2,7 +2,11 @@
 
 ;; Class
 (defclass emitter ()
-  ((oneshots :accessor oneshots)
+  ((owner :accessor owner
+          :initarg :owner
+          :initform *hinge*
+          :documentation "The hinge instance the event emitter functions within.")
+   (oneshots :accessor oneshots)
    (listeners :accessor listeners)))
 
 (defgeneric reset (emitter)
@@ -12,6 +16,8 @@
           (listeners emitter) (make-hash-table :test 'equalp))))
 
 (defmethod initialize-instance :after ((emitter emitter) &key)
+  (unless (owner emitter)
+    (error "Emitter ~A has no owner." emitter))
   (reset emitter))
 
 ;; Generics
@@ -37,7 +43,7 @@ only fires once, then it is removed."))
     (flet ((deliver (cb)
              (when (remhash cb (oneshots emitter))
                (remove-listener emitter event cb))
-             (defer (apply cb args))))
+             (defer ((owner emitter)) (apply cb args))))
       (mapc #'deliver registered))))
 
 (defmethod add-listener ((emitter emitter) (event string) (callback symbol))

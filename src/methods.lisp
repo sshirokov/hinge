@@ -1,37 +1,41 @@
 (in-package :hinge)
 
 ;; Methods
-(defmethod run ()
+(defmethod run ((hinge (eql :default)))
   "Run the event loop then bind a new event loop
 instance then bind a new one after completion."
-  (unwind-protect (ev:event-dispatch *hinge* nil)
+  (unwind-protect (run *hinge*)
     (setf *hinge* (make-instance 'hinge))))
 
-(defmethod set-timeout (timeout (callback symbol))
+(defmethod run ((hinge hinge))
+  "Run the event loop held by `hinge'"
+  (ev:event-dispatch hinge nil))
+
+(defmethod set-timeout (hinge timeout (callback symbol))
   "Fetches the function value of `callback' and passes it down."
-  (set-timeout timeout (symbol-function callback)))
-(defmethod set-timeout ((timeout number) (callback function))
+  (set-timeout hinge timeout (symbol-function callback)))
+(defmethod set-timeout ((hinge hinge) (timeout number) (callback function))
   "Typechecking and sanitizing wrapper to add a timeout callback."
   (flet ((timeout-fun (l w e)
            (declare (ignore l e))
-           (clear w)
+           (clear hinge w)
            (funcall callback)))
     (let ((timeout-cb (make-instance 'ev:ev-timer)))
-      (ev:set-timer *hinge* timeout-cb #'timeout-fun (coerce timeout 'double-float))
-      (ev:start-watcher *hinge* timeout-cb)
+      (ev:set-timer hinge timeout-cb #'timeout-fun (coerce timeout 'double-float))
+      (ev:start-watcher hinge timeout-cb)
       timeout-cb)))
 
-(defmethod set-interval (timeout (callback symbol))
-  (set-interval timeout (symbol-function callback)))
-(defmethod set-interval ((timeout number) (callback function))
+(defmethod set-interval (hinge timeout (callback symbol))
+  (set-interval hinge timeout (symbol-function callback)))
+(defmethod set-interval ((hinge hinge) (timeout number) (callback function))
   (flet ((timeout-fun (l w e)
            (declare (ignore l w e))
            (funcall callback)))
     (let ((timeout-cb (make-instance 'ev:ev-timer))
           (timeout (coerce timeout 'double-float)))
-      (ev:set-timer *hinge* timeout-cb #'timeout-fun timeout :repeat timeout)
-      (ev:start-watcher *hinge* timeout-cb)
+      (ev:set-timer hinge timeout-cb #'timeout-fun timeout :repeat timeout)
+      (ev:start-watcher hinge timeout-cb)
       timeout-cb)))
 
-(defmethod clear ((handle ev:ev-watcher))
-  (ev:stop-watcher *hinge* handle))
+(defmethod clear ((hinge hinge) (handle ev:ev-watcher))
+  (ev:stop-watcher hinge handle))

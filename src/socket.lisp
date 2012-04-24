@@ -56,13 +56,13 @@ completes."))
     (appendf (writes socket)
              (list (vector data 0 callback)))
     (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
-      (ev:start-watcher *hinge* watcher))))
+      (ev:start-watcher (owner socket) watcher))))
 
 (defmethod close ((socket socket) &key abort)
   "Close the socket, emit \"close\" event."
   (close (sock socket))
-  (ev:stop-watcher *hinge* (svref (watchers socket) 0))
-  (ev:stop-watcher *hinge* (svref (watchers socket) 1))
+  (ev:stop-watcher (owner socket) (svref (watchers socket) 0))
+  (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
   (emit socket "close" socket))
 
 ;; Event methods
@@ -84,12 +84,12 @@ completes."))
                (written (sockets:send-to (sock socket) buffer :start start :dont-wait t)))
           (when (= (incf (svref data 1) written) (length buffer))
             (pop (writes socket))
-            (defer
+            (defer ((owner socket))
               (funcall callback socket))))
 
         (progn
           (format t "Socket drained: ~A~%" socket)
-          (ev:stop-watcher *hinge* (svref (watchers socket) 1) :keep-callback t)
+          (ev:stop-watcher (owner socket) (svref (watchers socket) 1) :keep-callback t)
           (emit socket "drain" socket)))))
 
 ;; Init Methods
@@ -99,27 +99,27 @@ completes."))
 
 (defmethod init-watchers :before ((socket socket))
   (when (svref (watchers socket) 0) ;; Reader watcher
-    (ev:stop-watcher *hinge* (svref (watchers socket) 0))
+    (ev:stop-watcher (owner socket) (svref (watchers socket) 0))
     (setf (svref (watchers socket) 0) nil))
 
   (when (svref (watchers socket) 1) ;; Writer watcher
-    (ev:stop-watcher *hinge* (svref (watchers socket) 1))
+    (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
     (setf (svref (watchers socket) 1) nil)))
 
 (defmethod init-watchers ((socket socket))
   (let ((read-watcher (make-instance 'ev:ev-io-watcher)))
-    (ev:set-io-watcher *hinge* read-watcher (fd socket) ev:EV_READ
+    (ev:set-io-watcher (owner socket) read-watcher (fd socket) ev:EV_READ
                        #'(lambda (ev watcher events)
                            (declare (ignore ev watcher events))
                            (on-read socket)))
-    (ev:start-watcher *hinge* read-watcher)
+    (ev:start-watcher (owner socket) read-watcher)
     (setf (svref (watchers socket) 0) read-watcher))
 
   (let ((write-watcher (make-instance 'ev:ev-io-watcher)))
-    (ev:set-io-watcher *hinge* write-watcher (fd socket) ev:EV_WRITE
+    (ev:set-io-watcher (owner socket) write-watcher (fd socket) ev:EV_WRITE
                        #'(lambda (ev watcher events)
                            (declare (ignore ev watcher events))
                            (on-write socket)))
     (unless (null (writes socket))
-      (ev:start-watcher *hinge* write-watcher))
+      (ev:start-watcher (owner socket) write-watcher))
     (setf (svref (watchers socket) 1) write-watcher)))

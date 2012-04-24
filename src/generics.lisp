@@ -1,19 +1,19 @@
 (in-package :hinge)
 
 ;; Generics
-(defgeneric run ()
+(defgeneric run (hinge)
   (:documentation "Run the event loop."))
 
-(defgeneric set-timeout (timeout callback)
+(defgeneric set-timeout (hinge timeout callback)
   (:documentation "Creates and registers a `callback' of no arguments
 to be invoked after `timeout' elapses."))
-(defgeneric set-interval (interval callback)
+(defgeneric set-interval (hinge interval callback)
   (:documentation "Crates and registers a `callback' of no arguments
 to be invoked every `timeout'"))
-(defgeneric clear (handle)
+(defgeneric clear (hinge handle)
   (:documentation "Clear the registration of a watcher (e.g. timeout or interval) named by `handle'"))
 
 ;; Wrappers
-(defmacro defer (&body forms)
+(defmacro defer ((hinge) &body forms)
   "Defer execution of `forms' to later, but very soon."
-  `(set-timeout 0 (lambda () ,@forms)))
+  `(set-timeout ,hinge 0 (lambda () ,@forms)))
