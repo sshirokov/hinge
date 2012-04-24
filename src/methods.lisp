@@ -1,16 +1,23 @@
 (in-package :hinge)
 
 ;; Methods
+(defmethod initialize-instance :after ((hinge hinge) &key)
+  (setf (bg-pool hinge)
+        (make-instance 'pool :owner hinge)))
+
+(defmethod close ((hinge hinge) &key &allow-other-keys)
+  (close (bg-pool hinge)))
+
 (defmethod run ((hinge (eql :default)))
   "Run the event loop then bind a new event loop
 instance then bind a new one after completion."
-  (unwind-protect (run *hinge*)
-    (setf *hinge* (make-instance 'hinge))))
+  (unwind-protect (run (get-default-hinge))
+    (get-default-hinge)))
 
 (defmethod run ((hinge hinge))
   "Run the event loop held by `hinge'"
   (unwind-protect (ev:event-dispatch hinge nil)
-    (close (bg-pool hinge))))
+    (close hinge)))
 
 (defmethod set-timeout (hinge timeout (callback symbol))
   "Fetches the function value of `callback' and passes it down."

@@ -1,9 +1,15 @@
 (in-package :hinge)
 
+;; Dynamic default hinge
+(defvar *hinge* nil "The default hinge reactor.")
+(defun get-default-hinge ()
+  (or *hinge*
+      (setf *hinge* (make-instance 'hinge))))
+
 ;; Classes
 (defclass hinge (ev:ev-loop)
-  ((bg-pool :initform (make-instance 'pool :size 5)
-            :accessor bg-pool)))
+  ((bg-pool :accessor bg-pool
+            :documentation "Background work threadpool")))
 
-;; Package Dynamics
-(defvar *hinge* (make-instance 'hinge) "The current instance of the event reactor.")
+
+

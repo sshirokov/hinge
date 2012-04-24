@@ -7,7 +7,8 @@ to use concurrently. `args' are passed on as to `make-hash-table'"
   (apply #'make-hash-table :synchronized t args))
 
 ;; Classes
-(defclass pool ()
+;;; Pool Class
+(defclass pool (emitter)
   ((size :initform 5
          :initarg :size)
    (workers :initform (list)
@@ -24,6 +25,7 @@ fire any leftover callbacks as failure."
   (format t "TODO: Terminate worker threads in: ~A~%" (workers pool))
   (format t "TODO: Fail remaining callbacks in ~A~%" (work pool)))
 
+;;; Job Class
 (defclass job ()
   ((id :initarg :id
        :reader id
