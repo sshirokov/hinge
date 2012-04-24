@@ -4,7 +4,7 @@
 (defclass emitter ()
   ((owner :accessor owner
           :initarg :owner
-          :initform *hinge*
+          :initform (get-default-hinge)
           :documentation "The hinge instance the event emitter functions within.")
    (oneshots :accessor oneshots)
    (listeners :accessor listeners)))

@@ -9,13 +9,10 @@
   (:default-initargs . (:sock nil)))
 
 ;; Init
-(defmethod initialize-instance :after ((zsock zmq-socket) &key)
-  "Create a socket on the class if one did not exist before.
-Intentionally trips on undefined `context' or `sock-type' if
-they are used."
-  (setf (sock zsock)
-        (or (sock zsock)
-            (zmq:socket (context zsock) (sock-type zsock)))))
+(defmethod init-watchers :before ((zsock zmq-socket))
+  (setf (sock zsock) (or (sock zsock)
+                         (zmq:socket (context zsock) (sock-type zsock)))
+        (fd zsock) (zmq:getsockopt (sock zsock) :fd)))
 
 ;; API
 (defmethod connect ((zsock zmq-socket) (spec string) &optional host)
@@ -23,7 +20,8 @@ they are used."
 parameter is ignored to remain API compatible with the `socket' class."
   (declare (ignore host))
   (prog1 zsock
-    (zmq:connect (sock zsock) spec)))
+    (zmq:connect (sock zsock) spec)
+    (emit zsock "connect" zsock)))
 
 (defmethod bind ((zsock zmq-socket) (spec string) &optional host)
   "Bind the socket `zsock' to the ZMQ endpoint declared by `spec'. The `host'
@@ -44,7 +42,15 @@ the callback `when-block-fn' will be invoked with the socket instance."
 
 ;; Hooks
 (defmethod on-read ((zsock zmq-socket))
-  (emit zsock "data" (zmq:recv! zsock :array)))
+  (flet ((get-msg ()
+           (handler-case (zmq:recv! (sock zsock) :array '(:noblock))
+             (zmq:eagain-error () nil))))
+
+    (when (member :pollin (handler-case (zmq:getsockopt (sock zsock) :events)
+                            (zmq:einval-error () nil)))
+      (do ((msg (get-msg) (get-msg)))
+          ((not msg) :done)
+        (emit zsock "data" msg)))))
 
 (defmethod on-write ((zsock zmq-socket))
   (format t "TODO: What do I do when ~A is ready for write!?~%" zsock)
