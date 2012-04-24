@@ -8,7 +8,8 @@
   :depends-on (:ev
                :log5
                :alexandria
-               :iolib)
+               :iolib
+               :uuid)
 
   :components ((:module "src" :components
                         ((:file "package")
