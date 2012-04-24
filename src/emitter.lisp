@@ -6,8 +6,18 @@
           :initarg :owner
           :initform (get-default-hinge)
           :documentation "The hinge instance the event emitter functions within.")
+
    (oneshots :accessor oneshots)
-   (listeners :accessor listeners)))
+   (listeners :accessor listeners)
+
+   (events :accessor events
+           :initform (make-instance 'queue :size 20)
+           :documentation "A queue of emitted events. Drained with an interval
+to avoid blocking the event loop delivering events.")
+   (runner :accessor event-runner
+           :initform nil
+           :documentation "A watcher that runs through the event queue
+delivering events to listeners.")))
 
 (defgeneric reset (emitter)
   (:documentation "Reset the emitter to its empty initial state.")
@@ -39,12 +49,29 @@ only fires once, then it is removed."))
 
 ;; Methods
 (defmethod emit ((emitter emitter) (event string) &rest args)
+  "Enqueue the delivery of an `event' with `args'. The event will
+be delivered at some point in the future, but very soon, in the order
+that it was emitted relative to other events."
   (let ((registered (gethash event (listeners emitter))))
     (flet ((deliver (cb)
              (when (remhash cb (oneshots emitter))
                (remove-listener emitter event cb))
-             (defer ((owner emitter)) (apply cb args))))
+             (enqueue (events emitter) (lambda () (apply cb args)))))
       (mapc #'deliver registered))))
+
+(defmethod emit :after ((emitter emitter) (event string) &rest args)
+  "Register an interval to deliver the emitted events as they are fired
+in the order that they are fired. When the queue is empty the delivery
+timer goes to sleep until the next event is emitted."
+  (declare (ignore args))
+  (flet ((timer-cb ()
+           (if-let (thunk (dequeue (events emitter)))
+             (funcall thunk)
+             (ev:stop-watcher (owner emitter) (event-runner emitter) :keep-callback t))))
+
+    (setf (event-runner emitter) (or (event-runner emitter)
+                                     (set-interval (owner emitter) 0 #'timer-cb)))
+    (ev:start-watcher (owner emitter) (event-runner emitter))))
 
 (defmethod add-listener ((emitter emitter) (event string) (callback symbol))
   (add-listener emitter event (symbol-function callback)))
