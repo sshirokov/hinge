@@ -7,6 +7,7 @@
   :version "0.0.0"
   :depends-on (:ev
                :zmq
+               :bordeaux-threads
                :arnesi
                :log5
                :alexandria
