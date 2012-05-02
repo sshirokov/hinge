@@ -3,8 +3,9 @@
 ;; Dynamic default hinge
 (defvar *hinge* nil "The default hinge reactor.")
 (defun get-default-hinge (&optional reset)
-  (when reset
-    (setf *hinge* nil))
+  (when (and reset *hinge*)
+      (close *hinge*)
+      (setf *hinge* nil))
 
   (or *hinge*
       (setf *hinge* (make-instance 'hinge))))
