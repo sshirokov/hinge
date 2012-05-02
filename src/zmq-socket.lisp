@@ -14,6 +14,16 @@
                          (zmq:socket (context zsock) (sock-type zsock)))
         (fd zsock) (zmq:getsockopt (sock zsock) :fd)))
 
+;; TODO: Finer handling of on-write in ZMQ
+(defmethod init-watchers :after ((zsock zmq-socket))
+  "Hack measure to prevent the write callback for firing
+on the `zmq-socket', since more delicate handling of that event
+is required."
+  (ev:stop-watcher (owner zsock) (svref (watchers zsock) 1)))
+
+(defmethod resume :after ((zsock zmq-socket))
+  (ev:stop-watcher (owner zsock) (svref (watchers zsock) 1)))
+
 ;; API
 (defmethod connect ((zsock zmq-socket) (spec string) &optional host)
   "Connect the socket `zsock' to the ZMQ endpoint declared by `spec'. The `host'
@@ -50,10 +60,10 @@ the callback `when-block-fn' will be invoked with the socket instance."
                             (zmq:einval-error () nil)))
       (do ((msg (get-msg) (get-msg)))
           ((not msg) :done)
+        (format t "Emitting data message: ~S~%" (babel:octets-to-string msg))
         (emit zsock "data" msg)))))
 
 (defmethod on-write ((zsock zmq-socket))
   "The ZMQ socket should never be notified of write through libev.
 Blocking write failures should be handled with the `send' failure callback."
-  (format t "WARNING: The `on-write' fired for a zmq-socket: ~S~%" zsock)
-  :noop)
+  (format t "WARNING: The `on-write' fired for a zmq-socket: ~S~%" zsock))
