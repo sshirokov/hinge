@@ -1,7 +1,7 @@
 (in-package :hinge)
 
 ;; Helpers
-(defun make-safe-hash-table (&rest args &key)
+(defun make-safe-hash-table (&rest args &key &allow-other-keys)
   "Wrapper to return a hash table that is safe
 to use concurrently. `args' are passed on as to `make-hash-table'"
   ;; TODO: Feature checks for other lisps
@@ -29,7 +29,7 @@ to use concurrently. `args' are passed on as to `make-hash-table'"
             :accessor workers
             :documentation "The collection of worker threads.")
 
-   (work :initform (make-safe-hash-table)
+   (work :initform (make-safe-hash-table :test 'equalp)
          :accessor work
          :documentation "A mapping of string job ids to `job' objects
 scheduled or running in the thread pool.")))
@@ -72,10 +72,13 @@ fire any leftover callbacks as failure."
       (bt:destroy-thread worker)))
   (setf (workers pool) (list))
 
-  (format t "Destroying worker sockets.~%")
+  (format t "Destroying worker socket.~%")
   (when-let (sock (work-sock pool))
-    (zmq:close (work-sock pool)))
+    (setf (work-sock pool) nil)
+    (zmq:close sock))
+  (format t "Destroying result socket.~%")
   (when-let (sock (result-sock pool))
+    (setf (result-sock pool) nil)
     (close sock))
 
   (format t "TODO: Fail remaining callbacks in ~A~%" (work pool)))
@@ -121,3 +124,24 @@ reverse-chronological order. Possible events are: `:new' `:active' `:done' `:err
    (fail :initarg :fail
          :initform (lambda (condition) (declare (ignore condition)))
          :documentation "Invoked on a failed run of `thunk' with the condition signaled in the original thread.")))
+
+;;; API
+(defmacro async ((&key hinge pool success failure) &body forms)
+  (with-gensyms (g!job-id g!job e!pool e!hinge e!success e!failure)
+    `(let* ((,e!hinge ,hinge)
+            (,e!pool (or ,pool
+                         (bg-pool (if ,e!hinge ,e!hinge (get-default-hinge)))))
+            (,e!success ,success)
+            (,e!failure ,failure)
+
+            (,g!job-id (princ-to-string (uuid:make-v4-uuid)))
+            (,g!job (apply #'make-instance 'job :id ,g!job-id
+                           :thunk (lambda () ,@forms)
+                           (flatten
+                            (remove nil (list
+                                         (when ,e!success (list :finish ,e!success))
+                                         (when ,e!failure (list :fail ,e!failure))))))))
+       (setf (gethash ,g!job-id (work ,e!pool)) ,g!job)
+       (format t "Sending job: ~S to pool ~S~%" ,g!job-id ,e!pool)
+       (zmq:send! (work-sock ,e!pool) ,g!job-id)
+       ,g!job-id)))
