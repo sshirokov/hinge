@@ -80,6 +80,10 @@ fire any leftover callbacks as failure."
   (when-let (sock (result-sock pool))
     (setf (result-sock pool) nil)
     (close sock))
+  (format t "Destroying the job passing context.~%")
+  (when-let (ctx (context pool))
+    (setf (slot-value pool 'context) nil)
+    (zmq:term ctx))
 
   (format t "TODO: Fail remaining callbacks in ~A~%" (work pool)))
 
