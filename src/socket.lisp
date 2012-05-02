@@ -34,6 +34,11 @@ they are first disposed."))
 (defgeneric on-write (socket)
   (:documentation "Fired to handle a ready for write operation on this socket."))
 
+(defgeneric pause (socket)
+  (:documentation "Pause the incoming data events."))
+(defgeneric resume (socket)
+  (:documentation "Resume the incoming data events."))
+
 (defgeneric connect (socket port &optional host)
   (:documentation "Connect `socket' to `port' on `host'.
 If host is omitted localhost is assumed."))
@@ -58,12 +63,12 @@ completes."))
     (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
       (ev:start-watcher (owner socket) watcher))))
 
-(defmethod close ((socket socket) &key abort)
+(defmethod close ((socket socket) &key &allow-other-keys)
   "Close the actual socket before the close method cleans up the watchers
 and emits the event."
   (close (sock socket)))
 
-(defmethod close :after ((socket socket) &key abort)
+(defmethod close :after ((socket socket) &key &allow-other-keys)
   "Close the socket, emit \"close\" event."
   (ev:stop-watcher (owner socket) (svref (watchers socket) 0))
   (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
@@ -95,6 +100,18 @@ and emits the event."
           (format t "Socket drained: ~A~%" socket)
           (ev:stop-watcher (owner socket) (svref (watchers socket) 1) :keep-callback t)
           (emit socket "drain" socket)))))
+
+(defmethod pause ((socket socket))
+  (prog1 socket
+    (when (ev:watcher-active-p (svref (watchers socket) 0))
+      (ev:stop-watcher (owner socket) (svref (watchers socket) 0) :keep-callback t))
+    (when (ev:watcher-active-p (svref (watchers socket) 1))
+      (ev:stop-watcher (owner socket) (svref (watchers socket) 1) :keep-callback t))))
+
+(defmethod resume ((socket socket))
+  (prog1 socket
+    (ev:start-watcher (owner socket) (svref (watchers socket) 0))
+    (ev:start-watcher (owner socket) (svref (watchers socket) 1))))
 
 ;; Init Methods
 (defmethod initialize-instance :after ((inst socket) &key)
