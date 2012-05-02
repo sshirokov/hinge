@@ -60,7 +60,6 @@ the callback `when-block-fn' will be invoked with the socket instance."
                             (zmq:einval-error () nil)))
       (do ((msg (get-msg) (get-msg)))
           ((not msg) :done)
-        (format t "Emitting data message: ~S~%" (babel:octets-to-string msg))
         (emit zsock "data" msg)))))
 
 (defmethod on-write ((zsock zmq-socket))
