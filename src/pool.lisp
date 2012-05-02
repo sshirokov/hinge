@@ -52,7 +52,21 @@ scheduled or running in the thread pool.")))
 
   ;; TODO: There should probably be an API for this, since it's useless without it..
   (format t "Subscribing to results: ~S.~%" sub-mask)
-  (zmq:setsockopt (sock (result-sock pool)) :subscribe sub-mask))
+  (zmq:setsockopt (sock (result-sock pool)) :subscribe sub-mask)
+
+  (add-listener (result-sock pool) "data"
+                (lambda (data)
+                  (let* ((job-id (babel:octets-to-string data))
+                         (job (prog1 (gethash job-id (work pool))
+                                (remhash job-id (work pool)))))
+                    (if (not job)
+                        (format t "WARNING: Receiver could not find job: ~S~%" job-id)
+                        (progn
+                          (case (status job)
+                            (:done (funcall (finish job) (result job)))
+                            (:error (funcall (fail job) (result job)))
+                            (otherwise
+                             (format t "WARNING: Job ~S returned in unknown status: ~S~%" job-id (status job))))))))))
 
 (defmethod initialize-instance :after ((pool pool) &key)
   (bind pool "")
@@ -102,7 +116,9 @@ fire any leftover callbacks as failure."
                (if (not job)
                    (format t "WARNING: Worker ~S could not find job-id ~S~%"
                            (bt:thread-name (bt:current-thread)) job-id)
-                   (perform job))))))
+                   (progn
+                     (perform job)
+                     (zmq:send! result job-id)))))))
 
     (bt:make-thread #'work-fn :name (format nil "pool-worker[~S]" id))))
 
@@ -126,9 +142,11 @@ reverse-chronological order. Possible events are: `:new' `:active' `:done' `:err
            :documentation "The result of evaluating `thunk'.")
 
    (finish :initarg :finish
+           :reader finish
            :initform (lambda (result) (declare (ignore result)))
            :documentation "Invoked on successful run of `thunk'  with the return value in the original thread.")
    (fail :initarg :fail
+         :reader fail
          :initform (lambda (condition) (declare (ignore condition)))
          :documentation "Invoked on a failed run of `thunk' with the condition signaled in the original thread.")))
 
