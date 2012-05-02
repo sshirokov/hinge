@@ -2,6 +2,8 @@
   (:use :cl :log5)
 
   (:import-from :alexandria
+                :with-gensyms
+                :flatten
                 :when-let
                 :if-let
                 :appendf)
