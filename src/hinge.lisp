@@ -2,7 +2,10 @@
 
 ;; Dynamic default hinge
 (defvar *hinge* nil "The default hinge reactor.")
-(defun get-default-hinge ()
+(defun get-default-hinge (&optional reset)
+  (when reset
+    (setf *hinge* nil))
+
   (or *hinge*
       (setf *hinge* (make-instance 'hinge))))
 
@@ -10,6 +13,3 @@
 (defclass hinge (ev:ev-loop)
   ((bg-pool :accessor bg-pool
             :documentation "Background work threadpool")))
-
-
-
