@@ -102,10 +102,7 @@ fire any leftover callbacks as failure."
                (if (not job)
                    (format t "WARNING: Worker ~S could not find job-id ~S~%"
                            (bt:thread-name (bt:current-thread)) job-id)
-                   (progn
-                     (format t "Worker: ~S got job-id ~S => ~S~%"
-                             (bt:thread-name (bt:current-thread)) job-id job)
-                     (stamp job :active)))))))
+                   (perform job))))))
 
     (bt:make-thread #'work-fn :name (format nil "pool-worker[~S]" id))))
 
@@ -134,6 +131,27 @@ reverse-chronological order. Possible events are: `:new' `:active' `:done' `:err
    (fail :initarg :fail
          :initform (lambda (condition) (declare (ignore condition)))
          :documentation "Invoked on a failed run of `thunk' with the condition signaled in the original thread.")))
+
+(defgeneric perform (job)
+  (:documentation "Perform the job and either store success or failure.
+Returns three values: the job, the terminal status, and the result")
+  (:method ((job job))
+    (format t "Worker: ~S got job-id ~S => ~S~%"
+            (bt:thread-name (bt:current-thread)) (id job) job)
+    (stamp job :active)
+    (setf (result job) (handler-case
+                           (prog1 (funcall (thunk job))
+                             (stamp job :done))
+
+                         (t (c)
+                           (prog1 c
+                             (stamp job :error)))))
+    (values job (status job) (result job))))
+
+(defgeneric status (job)
+  (:documentation "The current status of the job.")
+  (:method ((job job))
+    (caar (stamps job))))
 
 (defgeneric stamp (job status)
   (:documentation "Add a status stamp to a job with the current internal time.")
