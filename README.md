@@ -18,8 +18,7 @@ of the result gathering socket into the hinge instance on init, and will end up 
 
 The TCP (and by inheritance, ZMQ) sockets are very early, thin wrappers, but the portions of those wrappers
 that perform the I/O operations are in relatively solid shape. The peices that are missing
-are support for timeouts, the pause and resume methods, and possibly some additional error handling
-for the edge cases of network communication.
+are support for timeouts and possibly some additional error handling for the edge cases of network communication.
 
 The ZeroMQ sockets currently require access to the `sock` slot to perform non-IO operations such
 as setting socket options. This is not permanent.
