@@ -4,6 +4,30 @@ Something resembling an evented framework for Common Lisp.
 
 Driven by [libev](http://software.schmorp.de/pkg/libev.html), like the cool kids.
 
+## Current state of affairs
+
+* Event emitters (functioning: built-in, and custom)
+* TCP Servers (functioning, but basic)
+* TCP Clients (functioning, but basic)
+* ZMQ Sockets (functioning, but basic and a tad abstraction-leaky)
+* Async parallel work pool(s) with calling-thread-local, event-friendly result callbacks (functioning, early. check the async example)
+
+At present, the early implementation of the worker pool blocks the natural exit from the event loop
+when it becomes free of any user-supplied callbacks. This is due to the registration
+of the result gathering socket into the hinge instance on init, and will end up getting resolved.
+
+The TCP (and by inheritance, ZMQ) sockets are very early, thin wrappers, but the portions of those wrappers
+that perform the I/O operations are in relatively solid shape. The peices that are missing
+are support for timeouts, the pause and resume methods, and possibly some additional error handling
+for the edge cases of network communication.
+
+The ZeroMQ sockets currently require access to the `sock` slot to perform non-IO operations such
+as setting socket options. This is not permanent.
+
+There are some example codes in the `examples` directory of the project root that have been used
+to develop the concepts they demonstrate with some comments. They might serve to make some more
+sense out of how this project could be applied.
+
 ## Quickstart
 
 Clone and init the project
