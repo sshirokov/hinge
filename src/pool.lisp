@@ -10,7 +10,18 @@ to use concurrently. `args' are passed on as to `make-hash-table'"
 ;; Classes
 ;;; Pool Class
 (defclass pool (emitter)
-  ((size :initform 5
+  ((context :initform (zmq:init 0)
+            :reader context)
+
+   (work-address :initform (format nil "inproc://threadpool-work-~A" (uuid:make-v4-uuid))
+                 :reader work-address)
+   (work-sock :accessor work-sock)
+
+   (result-address :initform (format nil "inproc://threadpool-result-~A" (uuid:make-v4-uuid))
+                   :reader result-address)
+   (result-sock :accessor result-sock)
+
+   (size :initform 2
          :initarg :size
          :reader size
          :documentation "The number of pool workers.")
@@ -28,8 +39,25 @@ scheduled or running in the thread pool.")))
   (:documentation "Return a running thread ready to do work for the given pool."))
 
 ;;;; Lifecycle methods
+(defmethod bind ((pool pool) sub-mask &optional host)
+  "Create and bind the sockets for work distribution and collection."
+  (declare (ignore  host))
+  (format t "~A Building work and result sockets. ~%" pool)
+  (setf (work-sock pool) (zmq:socket (context pool) :push)
+        (result-sock pool) (make-instance 'zmq-socket :owner (owner pool)
+                                          :context (context pool) :type :sub))
+
+  (zmq:bind (work-sock pool) (work-address pool))
+  (bind (result-sock pool) (result-address pool))
+
+  ;; TODO: There should probably be an API for this, since it's useless without it..
+  (format t "Subscribing to results: ~S.~%" sub-mask)
+  (zmq:setsockopt (sock (result-sock pool)) :subscribe sub-mask))
+
 (defmethod initialize-instance :after ((pool pool) &key)
-  (format t "TODO: Initializing pool: ~A~%" pool)
+  (bind pool "")
+
+  (format t "Initializing pool: ~A~%" pool)
   (dotimes (worker-id (size pool))
     (let ((worker (make-worker pool worker-id)))
       (format t "Adding worker ~a: ~S~%" worker-id worker)
@@ -43,13 +71,29 @@ fire any leftover callbacks as failure."
       (format t "Destroying worker: ~S~%" (bt:thread-name worker))
       (bt:destroy-thread worker)))
   (setf (workers pool) (list))
+
+  (format t "Destroying worker sockets.~%")
+  (when-let (sock (work-sock pool))
+    (zmq:close (work-sock pool)))
+  (when-let (sock (result-sock pool))
+    (close sock))
+
   (format t "TODO: Fail remaining callbacks in ~A~%" (work pool)))
 
 ;;;; Methods
 (defmethod make-worker ((pool pool) &optional (id :somekind))
   (flet ((work-fn ()
-           ;; TODO: Uh, no
-           (do () (nil) (sleep 1))))
+           (zmq:with-sockets ((work (context pool) :pull)
+                              (result (context pool) :pub))
+             (zmq:connect work (work-address pool))
+             (zmq:connect result (result-address pool))
+
+             (format t "Worker: ~S waiting to work.~%" (bt:thread-name (bt:current-thread)))
+             (do* ((job-id (zmq:recv! work :string) (zmq:recv! work :string))
+                   (job (gethash job-id (work pool)) (gethash job-id (work pool))))
+                  (nil)
+               (format t "Worker: ~S got job-id ~S => ~S~%" (bt:thread-name (bt:current-thread)) job-id job)))))
+
     (bt:make-thread #'work-fn :name (format nil "pool-worker[~S]" id))))
 
 
