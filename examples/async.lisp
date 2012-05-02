@@ -1,4 +1,15 @@
-;; Setup
+;; Server Setup
+;;
+;; This will run a server on an IPC ZeroMQ socket bound to /tmp/sock.command
+;; as a `ZMQ_SUB' socket. Every message that is received is assumed to be
+;; a number.
+;;
+;; When a message is received, it is read and eval'ed to convert it to a native
+;; number, then an asynchronous job is scheduled to perform a division
+;; of the number `1337.0' by the input.
+;;
+;; No data is returned over the network, it simply generates informational
+;; output.
 (ql:quickload :hinge)
 (in-package :hinge)
 
@@ -27,7 +38,7 @@
 
 ;; Command
 ;; -- Should be run in a separate thread or lisp process
-;;    or interactively from a REPL while the above server is running
+;;    or interactively from SLIME while the above server is running
 (ql:quickload :hinge)
 
 (defun send-divisor (n)
