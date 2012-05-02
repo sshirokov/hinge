@@ -99,7 +99,13 @@ fire any leftover callbacks as failure."
              (do* ((job-id (zmq:recv! work :string) (zmq:recv! work :string))
                    (job (gethash job-id (work pool)) (gethash job-id (work pool))))
                   (nil)
-               (format t "Worker: ~S got job-id ~S => ~S~%" (bt:thread-name (bt:current-thread)) job-id job)))))
+               (if (not job)
+                   (format t "WARNING: Worker ~S could not find job-id ~S~%"
+                           (bt:thread-name (bt:current-thread)) job-id)
+                   (progn
+                     (format t "Worker: ~S got job-id ~S => ~S~%"
+                             (bt:thread-name (bt:current-thread)) job-id job)
+                     (stamp job :active)))))))
 
     (bt:make-thread #'work-fn :name (format nil "pool-worker[~S]" id))))
 
@@ -128,6 +134,11 @@ reverse-chronological order. Possible events are: `:new' `:active' `:done' `:err
    (fail :initarg :fail
          :initform (lambda (condition) (declare (ignore condition)))
          :documentation "Invoked on a failed run of `thunk' with the condition signaled in the original thread.")))
+
+(defgeneric stamp (job status)
+  (:documentation "Add a status stamp to a job with the current internal time.")
+  (:method ((job job) status)
+    (push (cons status (get-internal-real-time)) (stamps job))))
 
 ;;; API
 (defmacro async ((&key hinge pool success failure) &body forms)
