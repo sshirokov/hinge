@@ -12,7 +12,7 @@
   "Run the event loop then bind a new event loop
 instance then bind a new one after completion."
   (unwind-protect (run (get-default-hinge))
-    (get-default-hinge)))
+    (get-default-hinge t)))
 
 (defmethod run ((hinge hinge))
   "Run the event loop held by `hinge'"
