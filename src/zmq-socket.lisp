@@ -30,7 +30,7 @@ parameter is ignored to remain API compatible with the `server' class."
   (prog1 zsock
     (zmq:bind (sock zsock) spec)))
 
-(defmethod close :before ((zsock zmq-socket) &key &allow-other-keys)
+(defmethod close ((zsock zmq-socket) &key &allow-other-keys)
   (zmq:close (sock zsock)))
 
 (defmethod send ((zsock zmq-socket) data &optional (when-block-fn (lambda (zsock) (declare (ignore zsock)))))
