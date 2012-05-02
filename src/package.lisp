@@ -2,6 +2,7 @@
   (:use :cl :log5)
 
   (:import-from :alexandria
+                :when-let
                 :if-let
                 :appendf)
 
@@ -15,4 +16,3 @@
 
 (in-package :hinge)
 (defcategory output)
-
