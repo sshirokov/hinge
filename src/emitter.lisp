@@ -64,13 +64,17 @@ that it was emitted relative to other events."
 in the order that they are fired. When the queue is empty the delivery
 timer goes to sleep until the next event is emitted."
   (declare (ignore args))
-  (flet ((timer-cb ()
+  (flet ((emitter-cb (&rest _)
+           (declare (ignore _))
            (if-let (thunk (dequeue (events emitter)))
              (funcall thunk)
              (ev:stop-watcher (owner emitter) (event-runner emitter) :keep-callback t))))
 
-    (setf (event-runner emitter) (or (event-runner emitter)
-                                     (set-interval (owner emitter) 0 #'timer-cb)))
+    (unless (event-runner emitter)
+      (setf (event-runner emitter) (let ((watcher (make-instance 'ev:ev-idle)))
+                                     (prog1 watcher
+                                       (ev:set-idle (owner emitter) watcher #'emitter-cb)))))
+
     (ev:start-watcher (owner emitter) (event-runner emitter))))
 
 (defmethod add-listener ((emitter emitter) (event string) (callback symbol))
