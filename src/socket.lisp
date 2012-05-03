@@ -79,7 +79,10 @@ does not affect the emission of the \"timeout\" event."
 
   (if (zerop timeout)
       (ev:stop-watcher (owner socket) (svref (watchers socket) 2) :keep-callback t)
-      (timeout-activity socket timeout t))
+      (progn
+        (when callback
+          (listen-once socket "timeout" callback))
+        (timeout-activity socket timeout t)))
 
   socket)
 
