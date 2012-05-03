@@ -8,6 +8,34 @@ to use concurrently. `args' are passed on as to `make-hash-table'"
   (apply #'make-hash-table :synchronized t args))
 
 ;; Classes
+;;; Job Class
+(defclass job ()
+  ((id :initarg :id
+       :reader id
+       :documentation "String identifier of the background job. Should match the key in the work table.")
+   (stamps :initform (list (cons :new (get-internal-real-time)))
+           :accessor stamps
+           :documentation "A list of events and time-stamps in the format of (:event . time) in
+reverse-chronological order. Possible events are: `:new' `:active' `:done' `:error'")
+
+   (thunk :initarg :thunk
+          :accessor thunk
+          :initform (lambda () :badjob)
+          :documentation "Invoked when the job is scheduled to execute.")
+
+   (result :accessor result
+           :documentation "The result of evaluating `thunk'.")
+
+   (finish :initarg :finish
+           :reader finish
+           :initform (lambda (result) (declare (ignore result)))
+           :documentation "Invoked on successful run of `thunk'  with the return value in the original thread.")
+   (fail :initarg :fail
+         :reader fail
+         :initform (lambda (condition) (declare (ignore condition)))
+         :documentation "Invoked on a failed run of `thunk' with the condition signaled in the original thread.")))
+
+
 ;;; Pool Class
 (defclass pool (emitter)
   ((context :initform (zmq:init 0)
@@ -38,6 +66,9 @@ scheduled or running in the thread pool.")))
 (defgeneric make-worker (pool &optional id)
   (:documentation "Return a running thread ready to do work for the given pool."))
 
+(defgeneric submit (pool job)
+  (:documentation "Submit a job for execution to the pool"))
+
 ;;;; Lifecycle methods
 (defmethod bind ((pool pool) sub-mask &optional host)
   "Create and bind the sockets for work distribution and collection."
@@ -59,6 +90,11 @@ scheduled or running in the thread pool.")))
                   (let* ((job-id (babel:octets-to-string data))
                          (job (prog1 (gethash job-id (work pool))
                                 (remhash job-id (work pool)))))
+
+                    (when (zerop (hash-table-count (work pool)))
+                      (format t "Pausing the result gathering socket of ~S~%" pool)
+                      (pause (result-sock pool)))
+
                     (if (not job)
                         (format t "WARNING: Receiver could not find job: ~S~%" job-id)
                         (progn
@@ -122,33 +158,15 @@ fire any leftover callbacks as failure."
 
     (bt:make-thread #'work-fn :name (format nil "pool-worker[~S]" id))))
 
+(defmethod submit :before ((pool pool) (job job))
+  "Resume the response gathering socket."
+  (resume (result-sock pool)))
 
-;;; Job Class
-(defclass job ()
-  ((id :initarg :id
-       :reader id
-       :documentation "String identifier of the background job. Should match the key in the work table.")
-   (stamps :initform (list (cons :new (get-internal-real-time)))
-           :accessor stamps
-           :documentation "A list of events and time-stamps in the format of (:event . time) in
-reverse-chronological order. Possible events are: `:new' `:active' `:done' `:error'")
-
-   (thunk :initarg :thunk
-          :accessor thunk
-          :initform (lambda () :badjob)
-          :documentation "Invoked when the job is scheduled to execute.")
-
-   (result :accessor result
-           :documentation "The result of evaluating `thunk'.")
-
-   (finish :initarg :finish
-           :reader finish
-           :initform (lambda (result) (declare (ignore result)))
-           :documentation "Invoked on successful run of `thunk'  with the return value in the original thread.")
-   (fail :initarg :fail
-         :reader fail
-         :initform (lambda (condition) (declare (ignore condition)))
-         :documentation "Invoked on a failed run of `thunk' with the condition signaled in the original thread.")))
+(defmethod submit ((pool pool) (job job))
+  "Submit a job to the pool"
+  (setf (gethash (id job) (work pool)) job)
+  (format t "Sending job: ~S to pool ~S~%" (id job) pool)
+  (zmq:send! (work-sock pool) (id job)))
 
 (defgeneric perform (job)
   (:documentation "Perform the job and either store success or failure.
@@ -193,7 +211,4 @@ Returns three values: the job, the terminal status, and the result")
                             (remove nil (list
                                          (when ,e!success (list :finish ,e!success))
                                          (when ,e!failure (list :fail ,e!failure))))))))
-       (setf (gethash ,g!job-id (work ,e!pool)) ,g!job)
-       (format t "Sending job: ~S to pool ~S~%" ,g!job-id ,e!pool)
-       (zmq:send! (work-sock ,e!pool) ,g!job-id)
-       ,g!job-id)))
+       (submit ,e!pool ,g!job))))
