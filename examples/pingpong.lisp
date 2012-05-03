@@ -1,8 +1,12 @@
 ;; Starts a server that accepts TCP connections on port 4545
-;; and listens for commands "PING" and "DIE"
+;; and listens for commands "PING", "RANDOM" and "DIE"
 ;; PING is replied to with PONG, and the connection is maintained
+;; RANDOM reports a random number to the requester, calculated asynchronously (for demonstration)
 ;; DIE disconnects everyone and should gracefully shut down the server
 ;; any other command causes the peer to disconnect
+;;
+;; Connected peers are bound by a 30 second inactivity timeout, after which they will
+;; be notified and disconnected.
 ;;
 ;; Original application of this code was to aid in the development of the socket class
 (ql:quickload :hinge)
@@ -14,6 +18,15 @@
 (add-listener *server* "connection"
               (lambda (peer)
                 (format t "New client: ~A~%" peer)
+                (set-timeout peer 30 nil)
+
+                (add-listener peer "timeout"
+                              (lambda (socket)
+                                (format t "Peer ~S is timing out.~%" socket)
+                                (send peer (babel:string-to-octets (format nil "You have timed out.~%"))
+                                      (lambda (sock)
+                                        (close sock)))))
+
                 (add-listener peer "data"
                               (lambda (data)
                                 (let ((data-str (string-right-trim '(#\return #\linefeed #\space)
