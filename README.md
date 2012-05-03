@@ -83,7 +83,7 @@ It should boot up and keep running an echo server on port 4545
 
 (progn
   (format t "Starting echo server at ~A~%" (get-universal-time))
-  (run))
+  (run :default))
 ```
 
 This should print some information stating the server is running and listening.
