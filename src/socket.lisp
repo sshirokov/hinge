@@ -5,9 +5,9 @@
   ((sock :initform (sockets:make-socket :ipv6 nil :reuse-address t)
          :initarg :sock
          :accessor sock)
-   (watchers :initform (vector nil nil)
+   (watchers :initform (vector nil nil nil)
              :accessor watchers
-             :documentation "#(read write) watchers.")
+             :documentation "#(read write timeout) watchers.")
    (writes :initform (list)
            :accessor writes
            :documentation "List of 3-vectors in the format
@@ -50,6 +50,39 @@ If host is omitted localhost is assumed."))
 completes."))
 
 ;; Interface methods
+(defmethod timeout-activity ((socket socket) &optional timeout start)
+  "Signal activity on the `socket' to reschedule the timeout into the
+future, if one exists. If `timeout' is given, it is set to be the new
+timeout interval to use. Unless the timer is already active, or `start'
+is non-nil, the timer is not restarted."
+  (when (svref (watchers socket) 2)
+    (when timeout
+      (cffi:with-foreign-slots ((ev::repeat) (ev::ev-pointer (svref (watchers socket) 2)) ev::ev_timer)
+        (setf ev::repeat (coerce timeout 'double-float))))
+
+    (when (or start (ev:watcher-active-p (svref (watchers socket) 2)))
+      (ev::ev_timer_again (ev::event-loop (owner socket)) (ev::ev-pointer (svref (watchers socket) 2))))))
+
+(defmethod set-timeout ((socket socket) (timeout number) callback)
+  "Set an inactivity timeout on the socket `socket' of `timeout' seconds.
+Callback must be specified, but can be `nil'. The `callback' parameter
+does not affect the emission of the \"timeout\" event."
+  (unless (svref (watchers socket) 2)
+    (flet ((timeout-cb (l watcher e)
+             (declare (ignore e))
+             (ev:stop-watcher l watcher :keep-callback t)
+             (emit socket "timeout" socket)))
+
+      (let ((watcher (make-instance 'ev:ev-timer)))
+        (ev:set-timer (owner socket) watcher #'timeout-cb (coerce timeout 'double-float))
+        (setf (svref (watchers socket) 2) watcher))))
+
+  (if (zerop timeout)
+      (ev:stop-watcher (owner socket) (svref (watchers socket) 2) :keep-callback t)
+      (timeout-activity socket timeout t))
+
+  socket)
+
 (defmethod connect ((socket socket) (port number) &optional (host #(127 0 0 1)))
   (async (:hinge (owner socket)
           :success (curry #'emit socket "connect")
@@ -75,9 +108,24 @@ and emits the event."
   "Close the socket, emit \"close\" event."
   (ev:stop-watcher (owner socket) (svref (watchers socket) 0))
   (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
+  (when (svref (watchers socket) 2)
+    (ev:stop-watcher (owner socket) (svref (watchers socket) 2)))
   (emit socket "close" socket))
 
 ;; Event methods
+(defmethod on-read :after ((socket socket))
+  "Signal timeout activity"
+  (timeout-activity socket))
+
+(defmethod on-write :after ((socket socket))
+  "Signal timeout activity"
+  (timeout-activity socket))
+
+(defmethod send :after ((socket socket) _ &optional __)
+  "Signal timeout activity"
+  (declare (ignore _ __))
+  (timeout-activity socket))
+
 (defmethod on-read ((socket socket))
   (if (sockets:socket-open-p (sock socket))
       (when (sockets:socket-connected-p (sock socket))
@@ -131,7 +179,11 @@ and emits the event."
 
   (when (svref (watchers socket) 1) ;; Writer watcher
     (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
-    (setf (svref (watchers socket) 1) nil)))
+    (setf (svref (watchers socket) 1) nil))
+
+  (when (svref (watchers socket) 2) ;; Timeout watcher
+    (ev:stop-watcher (owner socket) (svref (watchers socket) 2))
+    (setf (svref (watchers socket) 2) nil)))
 
 (defmethod init-watchers ((socket socket))
   (let ((read-watcher (make-instance 'ev:ev-io-watcher)))
