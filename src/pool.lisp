@@ -164,6 +164,7 @@ Returns three values: the job, the terminal status, and the result")
                          (t (c)
                            (prog1 c
                              (stamp job :error)))))
+    (format t "Worker: ~S finished job-id ~S => ~S~%" (bt:thread-name (bt:current-thread)) (id job) (status job))
     (values job (status job) (result job))))
 
 (defgeneric status (job)
