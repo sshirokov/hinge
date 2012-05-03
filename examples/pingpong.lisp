@@ -49,8 +49,14 @@
                                   (format t "Stopping the pinger.~%")
                                   (clear (owner sock) pinger))))))
 
+(add-listener *client* "error"
+              (lambda (c)
+                (format t "Socket ~S error: ~S~%" *client* c)))
+
+
 ;; Bind the server
 (bind *server* 4545)
+(format t "Bound ~S.~%" *server*)
 ;; Connect the client
 (connect *client* 4545)
 
