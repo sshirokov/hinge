@@ -7,16 +7,16 @@ Driven by [libev](http://software.schmorp.de/pkg/libev.html), like the cool kids
 
 ### System level dependencies
 
-* libev
-* ZeroMQ (2.1.11+)
-* SBCL
+* [libev](http://software.schmorp.de/pkg/libev.html)
+* [ZeroMQ](http://www.zeromq.org/) (2.1.11+)
+* [SBCL](http://www.sbcl.org/) (With thread support)
 
 ### Dependencies built outside of quicklisp
 
 These deps are fetched and built with `make develop`
 
 * [cl-ev](https://github.com/sbryant/cl-ev)
-* CFFI (Built from git, to support lisp-zmq)
+* [CFFI](http://common-lisp.net/project/cffi/) (Built from git, to support lisp-zmq)
 * [lisp-zmq](https://github.com/galdor/lisp-zmq)
 
 ## Current state of affairs
