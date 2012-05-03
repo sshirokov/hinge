@@ -40,6 +40,7 @@
 
 (add-listener *client* "connect"
               (lambda (sock)
+                (format t "Pinger client connected! Starting timer.~%")
                 (let ((pinger (set-interval (owner sock) 5
                                             (lambda ()
                                               (format t "Pinging!~%")
