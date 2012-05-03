@@ -18,14 +18,12 @@
 (add-listener *server* "connection"
               (lambda (peer)
                 (format t "New client: ~A~%" peer)
-                (set-timeout peer 30 nil)
-
-                (add-listener peer "timeout"
-                              (lambda (socket)
-                                (format t "Peer ~S is timing out.~%" socket)
-                                (send peer (babel:string-to-octets (format nil "You have timed out.~%"))
-                                      (lambda (sock)
-                                        (close sock)))))
+                (set-timeout peer 30
+                             (lambda (socket)
+                               (format t "Peer ~S is timing out.~%" socket)
+                               (send peer (babel:string-to-octets (format nil "You have timed out.~%"))
+                                     (lambda (sock)
+                                       (close sock)))))
 
                 (add-listener peer "data"
                               (lambda (data)
