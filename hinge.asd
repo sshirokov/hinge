@@ -33,6 +33,6 @@
                          (:file "emitter" :depends-on ("hinge" "generics"))
 
                          ;; Network
-                         (:file "socket" :depends-on ("emitter"))
+                         (:file "socket" :depends-on ("pool" "emitter"))
                          (:file "zmq-socket" :depends-on ("socket"))
                          (:file "server" :depends-on ("emitter" "helpers" "socket"))))))
