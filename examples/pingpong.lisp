@@ -23,12 +23,23 @@
                                          (close peer)
                                          (close *server*)
                                          (close *client*))
+
                                         ((string= "PING" data-str)
                                          (format t "Ponging ~A~%" peer)
-                                         (send peer (babel:string-to-octets "PONG")))
+                                         (send peer (babel:string-to-octets (format nil "PONG~%"))))
+
+                                        ((string= "RANDOM" data-str)
+                                         (format t "Random number request.~%")
+                                         (async (:success (lambda (n)
+                                                            (send peer
+                                                                  (babel:string-to-octets
+                                                                   (format nil "Random: ~A~%" n)))))
+                                           (random 100)))
+
+
                                         (t
                                          (format t "Unknown request, booting ~A: ~S~%" peer data-str)
-                                         (send peer (babel:string-to-octets "Invalid request!")
+                                         (send peer (babel:string-to-octets (format nil "Invalid request!~%"))
                                                (lambda (sock)
                                                  (close sock))))))))
 
