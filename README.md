@@ -14,7 +14,7 @@ Driven by [libev](http://software.schmorp.de/pkg/libev.html), like the cool kids
 
 The TCP (and by inheritance, ZMQ) sockets are very early, thin wrappers, but the portions of those wrappers
 that perform the I/O operations are in relatively solid shape. The peices that are missing
-are support for timeouts and possibly some additional error handling for the edge cases of network communication.
+are some additional error handling for the edge cases of network communication.
 Some of which were ironed out when making the `connect` call asynchronous.
 
 The ZeroMQ sockets currently require access to the `sock` slot to perform non-IO operations such
