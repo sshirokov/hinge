@@ -2,6 +2,7 @@
   (:use :cl :log5)
 
   (:import-from :alexandria
+                :curry
                 :with-gensyms
                 :flatten
                 :when-let
