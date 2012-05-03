@@ -4,6 +4,22 @@ Something resembling an evented framework for Common Lisp.
 
 Driven by [libev](http://software.schmorp.de/pkg/libev.html), like the cool kids.
 
+## Requirements
+
+### System level dependencies
+
+* libev
+* ZeroMQ (2.1.11+)
+* SBCL
+
+### Dependencies built outside of quicklisp
+
+These deps are fetched and built with `make develop`
+
+* [cl-ev](https://github.com/sbryant/cl-ev)
+* CFFI (Built from git, to support lisp-zmq)
+* [lisp-zmq](https://github.com/galdor/lisp-zmq)
+
 ## Current state of affairs
 
 * Event emitters (functioning: built-in, and custom)
