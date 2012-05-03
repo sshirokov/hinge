@@ -78,15 +78,15 @@ and emits the event."
 
 ;; Event methods
 (defmethod on-read ((socket socket))
-  (if (and (sockets:socket-open-p (sock socket))
-           (sockets:socket-connected-p (sock socket)))
-      (handler-case
-          (multiple-value-bind (data size)
-              (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
-            (if (zerop size)
-                (close socket)
-                (emit socket "data" (subseq data 0 size))))
-        (iolib.syscalls:ewouldblock () nil))
+  (if (sockets:socket-open-p (sock socket))
+      (when (sockets:socket-connected-p (sock socket))
+        (handler-case
+            (multiple-value-bind (data size)
+                (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
+              (if (zerop size)
+                  (close socket)
+                  (emit socket "data" (subseq data 0 size))))
+          (iolib.syscalls:ewouldblock () nil)))
       (close socket)))
 
 (defmethod on-write ((socket socket))
