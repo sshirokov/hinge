@@ -51,10 +51,12 @@ completes."))
 
 ;; Interface methods
 (defmethod connect ((socket socket) (port number) &optional (host #(127 0 0 1)))
-  (prog1 socket
-    (format t "Connect: ~A~%"
-            (sockets:connect (sock socket) (sockets:make-address host) :port port))
-    (emit socket "connect" socket)))
+  (defer ((owner socket))
+    (sockets:connect (sock socket) (sockets:make-address host) :port port)
+    (format t "Connected ~S~%" socket)
+    (emit socket "connect" socket))
+  socket)
+
 
 (defmethod send ((socket socket) (data sequence) &optional (callback (lambda (sock) (declare (ignore sock)))))
   (let ((watcher (svref (watchers socket) 1)))
