@@ -51,7 +51,8 @@
 
 (add-listener *client* "error"
               (lambda (c)
-                (format t "Socket ~S error: ~S~%" *client* c)))
+                (format t "Socket ~S error: ~S~%" *client* c)
+                (describe c)))
 
 
 ;; Bind the server
