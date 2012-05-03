@@ -51,10 +51,11 @@ completes."))
 
 ;; Interface methods
 (defmethod connect ((socket socket) (port number) &optional (host #(127 0 0 1)))
-  (defer ((owner socket))
+  (async (:hinge (owner socket)
+          :success (alexandria:curry #'emit socket "connect")
+          :failure (alexandria:curry #'emit socket "error"))
     (sockets:connect (sock socket) (sockets:make-address host) :port port)
-    (format t "Connected ~S~%" socket)
-    (emit socket "connect" socket))
+    socket)
   socket)
 
 
