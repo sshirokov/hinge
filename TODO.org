@@ -10,3 +10,24 @@
   socket to watch for timeout, and the command and close handlers are registered. --
   This all happens on a closed socket. So in 30 seconds, the entire operation fails when
   the timer fires into a callback table of a thing that no longer exists. Good times.
+** Thoughts:
+   I could queue up the emission of events as well as their delivery into the same queue.
+   This would mean that what I emit as the socket data should not get processed until the
+   the connect callback fires.
+
+   I think this would mean that I would have to move the idle callback queue out of the
+   individual emitters and out to the wider hinge, which might make a whole hell of a lot of
+   sense, and would let me keep prioritizing IO over performing event delivery.
+
+   Curious to see how it goes. An escape hatch in the future would be to inrease the priority
+   of the queue draining job if the queue size grows too rapidly. Thougn, I'd have to double
+   check to see how that would compete with high I/O if it is being run by an idle runner.
+
+   I have now checked
+
+   Libev sets priorites on idle-watchers on a "lock-out" model, whicn means if I keep a queue of
+   deliveries and a queue of event emissions and keep deliveries at a higher priority then it should
+   work out correctly and be executed by a pair of idle watchers. When deliveries are scheduled, if
+   the watcher for them is active it should be executed always until it's asleep before the watcher
+   at a lower priority for event emission, and we still get to keep the granularity of the event loop
+   not having to iterate lists of callbacks.
