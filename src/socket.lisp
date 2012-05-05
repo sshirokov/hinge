@@ -112,6 +112,7 @@ and emits the event."
   (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
   (when (svref (watchers socket) 2)
     (ev:stop-watcher (owner socket) (svref (watchers socket) 2)))
+  (format t "=> Emitting close on ~S~%" socket)
   (emit socket "close" socket))
 
 ;; Event methods
@@ -130,14 +131,20 @@ and emits the event."
 
 (defmethod on-read ((socket socket))
   (if (sockets:socket-open-p (sock socket))
-      (when (sockets:socket-connected-p (sock socket))
-        (handler-case
-            (multiple-value-bind (data size)
-                (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
-              (if (zerop size)
-                  (close socket)
-                  (emit socket "data" (subseq data 0 size))))
-          (iolib.syscalls:ewouldblock () nil)))
+      (if (sockets:socket-connected-p (sock socket))
+          (handler-case
+              (multiple-value-bind (data size)
+                  (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
+                (progn
+                  (format t "Got ~S ~S in read from ~S~%" size (subseq data 0 size) socket)
+                  (unless (zerop size)
+                    (format t " +> ~S~%" (babel:octets-to-string (subseq data 0 size))))
+                  (if (zerop size)
+                      (close socket)
+                      (prog1 (emit socket "data" (subseq data 0 size))
+                        (format t "Emitting data on ~S~%" socket)))))
+            (iolib.syscalls:ewouldblock () nil))
+          (format t "Socket ~S not connected~%" socket))
       (close socket)))
 
 (defmethod on-write ((socket socket))

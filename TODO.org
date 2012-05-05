@@ -1,0 +1,12 @@
+* TODO (close socket) Needs to be more final
+  Adding additional watchers, especially timeouts, should not happen.
+  Right now `$ echo DIE | nc localhost 4545` at examples/pingpong exposes
+  this failure after a 30 second pause.
+
+  The app is instrumented enough at the moment to make clear the failure:
+  The data events are being fired, and the socket is being close before even
+  the orignal connection event callback fires and the proper handlers are added.
+  When the callback for the connection is fired a timer is started against a closed
+  socket to watch for timeout, and the command and close handlers are registered. --
+  This all happens on a closed socket. So in 30 seconds, the entire operation fails when
+  the timer fires into a callback table of a thing that no longer exists. Good times.
