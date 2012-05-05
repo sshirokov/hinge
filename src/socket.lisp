@@ -99,7 +99,7 @@ does not affect the emission of the \"timeout\" event."
   (let ((watcher (svref (watchers socket) 1)))
     (appendf (writes socket)
              (list (vector data 0 callback)))
-    (when (zerop (ev::ev_is_active (ev::ev-pointer watcher)))
+    (unless (ev:watcher-active-p watcher)
       (ev:start-watcher (owner socket) watcher))))
 
 (defmethod close ((socket socket) &key &allow-other-keys)
