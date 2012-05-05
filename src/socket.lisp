@@ -57,8 +57,7 @@ timeout interval to use. Unless the timer is already active, or `start'
 is non-nil, the timer is not restarted."
   (when (svref (watchers socket) 2)
     (when timeout
-      (cffi:with-foreign-slots ((ev::repeat) (ev::ev-pointer (svref (watchers socket) 2)) ev::ev_timer)
-        (setf ev::repeat (coerce timeout 'double-float))))
+      (setf (ev:watcher-slot (svref (watchers socket) 2) :repeat) (coerce timeout 'double-float)))
 
     (when (or start (ev:watcher-active-p (svref (watchers socket) 2)))
       (ev::ev_timer_again (ev::event-loop (owner socket)) (ev::ev-pointer (svref (watchers socket) 2))))))
