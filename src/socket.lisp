@@ -96,10 +96,11 @@ does not affect the emission of the \"timeout\" event."
 
 (defmethod send ((socket socket) (data sequence) &optional (callback (lambda (sock) (declare (ignore sock)))))
   (let ((watcher (svref (watchers socket) 1)))
-    (appendf (writes socket)
-             (list (vector data 0 callback)))
-    (unless (ev:watcher-active-p watcher)
-      (ev:start-watcher (owner socket) watcher))))
+    (when watcher
+      (appendf (writes socket)
+               (list (vector data 0 callback)))
+      (unless (ev:watcher-active-p watcher)
+        (ev:start-watcher (owner socket) watcher)))))
 
 (defmethod close ((socket socket) &key &allow-other-keys)
   "Close the actual socket before the close method cleans up the watchers
@@ -108,11 +109,14 @@ and emits the event."
 
 (defmethod close :after ((socket socket) &key &allow-other-keys)
   "Close the socket, emit \"close\" event."
-  (ev:stop-watcher (owner socket) (svref (watchers socket) 0))
-  (ev:stop-watcher (owner socket) (svref (watchers socket) 1))
+  (when (svref (watchers socket) 0)
+    (ev:stop-watcher (owner socket) (svref (watchers socket) 0)))
+  (when (svref (watchers socket) 1)
+    (ev:stop-watcher (owner socket) (svref (watchers socket) 1)))
   (when (svref (watchers socket) 2)
     (ev:stop-watcher (owner socket) (svref (watchers socket) 2)))
   (format t "=> Emitting close on ~S~%" socket)
+  (setf (watchers socket) (vector nil nil nil))
   (emit socket "close" socket))
 
 ;; Event methods
