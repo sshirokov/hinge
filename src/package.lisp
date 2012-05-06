@@ -16,7 +16,35 @@
                 :dequeue)
 
   (:export :output
-           :*hinge*))
+           :hinge
+           :*hinge*
+           :get-default-hinge
+           :run
+
+           :set-interval
+           :set-timeout
+           :defer
+
+           :pool
+           :job
+           :submit
+           :async
+
+           :emit
+           :add-listener
+           :listen-once
+           :remove-listener
+
+           :socket
+           :sock
+           :zmq-socket
+           :server
+
+           :connect
+           :bind
+           :send))
+
+
 
 (in-package :hinge)
 (defcategory output)
