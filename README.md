@@ -28,7 +28,7 @@ allow you to emit an event named by a string with some parameters
 and have a chain of callbacks invoked that are expecting that
 event with the parameters.
 
-The event emitters of hinge are sent and delivered asyncronously
+The events of hinge are sent and delivered asyncronously
 so that a long chain of even subscribers will not block the event
 machine execution.
 
