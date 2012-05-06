@@ -65,7 +65,8 @@ only fires once, then it is removed."))
               (incf (ev:watcher-slot watcher :priority))
               watcher)))
 
-    (ev:start-watcher (owner emitter) (deliver-runner (owner emitter)))))
+    (unless (arnesi:queue-empty-p (deliver-queue (owner emitter)))
+      (ev:start-watcher (owner emitter) (deliver-runner (owner emitter))))))
 
 (defmethod emit ((emitter emitter) (event string) &rest args)
   "Enqueue the delivery of an `event' with `args'. The event will
