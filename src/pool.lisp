@@ -102,7 +102,8 @@ scheduled or running in the thread pool.")))
                             (:done (funcall (finish job) (result job)))
                             (:error (funcall (fail job) (result job)))
                             (otherwise
-                             (format t "WARNING: Job ~S returned in unknown status: ~S~%" job-id (status job))))))))))
+                             (format t "WARNING: Job ~S returned in unknown status: ~S~%" job-id (status job)))))))))
+  (pause (result-sock pool)))
 
 (defmethod initialize-instance :after ((pool pool) &key)
   (bind pool "")
