@@ -11,6 +11,7 @@
 
   (:import-from :arnesi
                 :queue
+                :queue-empty-p
                 :enqueue
                 :dequeue)
 

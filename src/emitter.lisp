@@ -65,7 +65,7 @@ only fires once, then it is removed."))
               (incf (ev:watcher-slot watcher :priority))
               watcher)))
 
-    (unless (arnesi:queue-empty-p (deliver-queue (owner emitter)))
+    (unless (queue-empty-p (deliver-queue (owner emitter)))
       (ev:start-watcher (owner emitter) (deliver-runner (owner emitter))))))
 
 (defmethod emit ((emitter emitter) (event string) &rest args)
