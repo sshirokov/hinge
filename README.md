@@ -19,18 +19,40 @@ These deps are fetched and built with `make develop`
 * [CFFI](http://common-lisp.net/project/cffi/) (Built from git, to support lisp-zmq)
 * [lisp-zmq](https://github.com/galdor/lisp-zmq)
 
-## Current state of affairs
+## Concepts and Principles
 
-* Event emitters (functioning: built-in, and custom)
-* TCP Servers (functioning, but basic)
-* TCP Clients (functioning, but basic)
-* ZMQ Sockets (functioning, but basic and a tad abstraction-leaky)
-* Async parallel work pool(s) with calling-thread-local, event-friendly result callbacks (functioning, early. check the async example)
+### Event emitters
 
-The TCP (and by inheritance, ZMQ) sockets are very early, thin wrappers, but the portions of those wrappers
-that perform the I/O operations are in relatively solid shape. The peices that are missing
-are some additional error handling for the edge cases of network communication.
-Some of which were ironed out when making the `connect` call asynchronous.
+As introduced and described in the Node.js docs. Event emitters
+allow you to emit an event named by a string with some parameters
+and have a chain of callbacks incoked that are expecting that
+event with the callbacks.
+
+The event emitters of hinge are sent and delivered asyncronously
+so that a long chain of even subscribers will not block the event
+machine execution.
+
+### TCP Servers and Clients
+
+Modeled after the Node.js net.* APIs, provides event emitting
+classes that abstract network communication to a set of emitted
+"data" events and a write scheduler that allows IO to be deferred
+until the socket is ready.
+
+### ZMQ Sockets
+
+Wrapped around the implementations of the TCP Socket and Server classes
+allow the deliver of ZeroMQ messages as emitted "data" events and allows
+the handling of blocking ZeroMQ socket sends with a callback.
+
+### Async parallel work pool(s) with calling-thread-local, event-friendly result callbacks
+
+Allows the submission of work with bound callbacks for the successfull or
+failed execution of a set of forms in a thead pool. The result or error
+will be delivered asynchronously to the thread controlling the event loop
+while the work will be evaluated outside of it.
+
+## TODO
 
 The ZeroMQ sockets currently require access to the `sock` slot to perform non-IO operations such
 as setting socket options. This is not permanent.
