@@ -54,6 +54,8 @@ while the work will be evaluated outside of it.
 
 ## TODO
 
+Multipart ZeroMQ messages are not supported. They deserve minor special treatment.
+
 The ZeroMQ sockets currently require access to the `sock` slot to perform non-IO operations such
 as setting socket options. This is not permanent.
 
