@@ -20,3 +20,4 @@
 
 (in-package :hinge)
 (defcategory output)
+(defcategory debug)

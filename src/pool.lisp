@@ -73,7 +73,7 @@ scheduled or running in the thread pool.")))
 (defmethod bind ((pool pool) sub-mask &optional host)
   "Create and bind the sockets for work distribution and collection."
   (declare (ignore  host))
-  (format t "~A Building work and result sockets. ~%" pool)
+  (log-for (debug) "~A Building work and result sockets." pool)
   (setf (work-sock pool) (zmq:socket (context pool) :push)
         (result-sock pool) (make-instance 'zmq-socket :owner (owner pool)
                                           :context (context pool) :type :sub))
@@ -82,7 +82,7 @@ scheduled or running in the thread pool.")))
   (bind (result-sock pool) (result-address pool))
 
   ;; TODO: There should probably be an API for this, since it's useless without it..
-  (format t "Subscribing to results: ~S.~%" sub-mask)
+  (log-for (debug) "Subscribing to results: ~S." sub-mask)
   (zmq:setsockopt (sock (result-sock pool)) :subscribe sub-mask)
 
   (add-listener (result-sock pool) "data"
@@ -92,26 +92,26 @@ scheduled or running in the thread pool.")))
                                 (remhash job-id (work pool)))))
 
                     (when (zerop (hash-table-count (work pool)))
-                      (format t "Pausing the result gathering socket of ~S~%" pool)
+                      (log-for (debug) "Pausing the result gathering socket of ~S" pool)
                       (pause (result-sock pool)))
 
                     (if (not job)
-                        (format t "WARNING: Receiver could not find job: ~S~%" job-id)
+                        (log-for (debug) "WARNING: Receiver could not find job: ~S" job-id)
                         (progn
                           (case (status job)
                             (:done (funcall (finish job) (result job)))
                             (:error (funcall (fail job) (result job)))
                             (otherwise
-                             (format t "WARNING: Job ~S returned in unknown status: ~S~%" job-id (status job)))))))))
+                             (log-for (debug) "WARNING: Job ~S returned in unknown status: ~S" job-id (status job)))))))))
   (pause (result-sock pool)))
 
 (defmethod initialize-instance :after ((pool pool) &key)
   (bind pool "")
 
-  (format t "Initializing pool: ~A~%" pool)
+  (log-for (debug) "Initializing pool: ~A" pool)
   (dotimes (worker-id (size pool))
     (let ((worker (make-worker pool worker-id)))
-      (format t "Adding worker ~a: ~S~%" worker-id worker)
+      (log-for (debug) "Adding worker ~a: ~S" worker-id worker)
       (push worker (workers pool)))))
 
 (defmethod close ((pool pool) &key &allow-other-keys)
@@ -119,24 +119,24 @@ scheduled or running in the thread pool.")))
 fire any leftover callbacks as failure."
   (dolist (worker (workers pool))
     (when (and (bt:threadp worker) (bt:thread-alive-p worker))
-      (format t "Destroying worker: ~S~%" (bt:thread-name worker))
+      (log-for (debug) "Destroying worker: ~S" (bt:thread-name worker))
       (bt:destroy-thread worker)))
   (setf (workers pool) (list))
 
-  (format t "Destroying worker socket.~%")
+  (log-for (debug) "Destroying worker socket.")
   (when-let (sock (work-sock pool))
     (setf (work-sock pool) nil)
     (zmq:close sock))
-  (format t "Destroying result socket.~%")
+  (log-for (debug) "Destroying result socket.")
   (when-let (sock (result-sock pool))
     (setf (result-sock pool) nil)
     (close sock))
-  (format t "Destroying the job passing context.~%")
+  (log-for (debug) "Destroying the job passing context.")
   (when-let (ctx (context pool))
     (setf (slot-value pool 'context) nil)
     (zmq:term ctx))
 
-  (format t "TODO: Fail remaining callbacks in ~A~%" (work pool)))
+  (log-for (debug) "TODO: Fail remaining callbacks in ~A" (work pool)))
 
 ;;;; Methods
 (defmethod make-worker ((pool pool) &optional (id :somekind))
@@ -146,12 +146,12 @@ fire any leftover callbacks as failure."
              (zmq:connect work (work-address pool))
              (zmq:connect result (result-address pool))
 
-             (format t "Worker: ~S waiting to work.~%" (bt:thread-name (bt:current-thread)))
+             (log-for (debug) "Worker: ~S waiting to work." (bt:thread-name (bt:current-thread)))
              (do* ((job-id (zmq:recv! work :string) (zmq:recv! work :string))
                    (job (gethash job-id (work pool)) (gethash job-id (work pool))))
                   (nil)
                (if (not job)
-                   (format t "WARNING: Worker ~S could not find job-id ~S~%"
+                   (log-for (debug) "WARNING: Worker ~S could not find job-id ~S"
                            (bt:thread-name (bt:current-thread)) job-id)
                    (progn
                      (perform job)
@@ -166,14 +166,14 @@ fire any leftover callbacks as failure."
 (defmethod submit ((pool pool) (job job))
   "Submit a job to the pool"
   (setf (gethash (id job) (work pool)) job)
-  (format t "Sending job: ~S to pool ~S~%" (id job) pool)
+  (log-for (debug) "Sending job: ~S to pool ~S" (id job) pool)
   (zmq:send! (work-sock pool) (id job)))
 
 (defgeneric perform (job)
   (:documentation "Perform the job and either store success or failure.
 Returns three values: the job, the terminal status, and the result")
   (:method ((job job))
-    (format t "Worker: ~S got job-id ~S => ~S~%"
+    (log-for (debug) "Worker: ~S got job-id ~S => ~S"
             (bt:thread-name (bt:current-thread)) (id job) job)
     (stamp job :active)
     (setf (result job) (handler-case
@@ -183,7 +183,7 @@ Returns three values: the job, the terminal status, and the result")
                          (t (c)
                            (prog1 c
                              (stamp job :error)))))
-    (format t "Worker: ~S finished job-id ~S => ~S~%" (bt:thread-name (bt:current-thread)) (id job) (status job))
+    (log-for (debug) "Worker: ~S finished job-id ~S => ~S" (bt:thread-name (bt:current-thread)) (id job) (status job))
     (values job (status job) (result job))))
 
 (defgeneric status (job)

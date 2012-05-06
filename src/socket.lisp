@@ -115,7 +115,7 @@ and emits the event."
     (ev:stop-watcher (owner socket) (svref (watchers socket) 1)))
   (when (svref (watchers socket) 2)
     (ev:stop-watcher (owner socket) (svref (watchers socket) 2)))
-  (format t "=> Emitting close on ~S~%" socket)
+  (log-for (debug) "=> Emitting close on ~S" socket)
   (setf (watchers socket) (vector nil nil nil))
   (emit socket "close" socket))
 
@@ -140,15 +140,15 @@ and emits the event."
               (multiple-value-bind (data size)
                   (sockets:receive-from (sock socket) :size (* 8 1024) :dont-wait t)
                 (progn
-                  (format t "Got ~S ~S in read from ~S~%" size (subseq data 0 size) socket)
+                  (log-for (debug) "Got ~S ~S in read from ~S" size (subseq data 0 size) socket)
                   (unless (zerop size)
-                    (format t " +> ~S~%" (babel:octets-to-string (subseq data 0 size))))
+                    (log-for (debug) " +> ~S" (babel:octets-to-string (subseq data 0 size))))
                   (if (zerop size)
                       (close socket)
                       (prog1 (emit socket "data" (subseq data 0 size))
-                        (format t "Emitting data on ~S~%" socket)))))
+                        (log-for (debug) "Emitting data on ~S" socket)))))
             (iolib.syscalls:ewouldblock () nil))
-          (format t "Socket ~S not connected~%" socket))
+          (log-for (debug) "Socket ~S not connected" socket))
       (close socket)))
 
 (defmethod on-write ((socket socket))
@@ -164,7 +164,7 @@ and emits the event."
               (funcall callback socket))))
 
         (progn
-          (format t "Socket drained: ~A~%" socket)
+          (log-for (debug) "Socket drained: ~A" socket)
           (ev:stop-watcher (owner socket) (svref (watchers socket) 1) :keep-callback t)
           (emit socket "drain" socket)))))
 

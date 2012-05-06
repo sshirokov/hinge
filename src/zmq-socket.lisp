@@ -65,4 +65,4 @@ the callback `when-block-fn' will be invoked with the socket instance."
 (defmethod on-write ((zsock zmq-socket))
   "The ZMQ socket should never be notified of write through libev.
 Blocking write failures should be handled with the `send' failure callback."
-  (format t "WARNING: The `on-write' fired for a zmq-socket: ~S~%" zsock))
+  (log-for (warn) "WARNING: The `on-write' fired for a zmq-socket: ~S" zsock))
