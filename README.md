@@ -29,7 +29,7 @@ and have a chain of callbacks invoked that are expecting that
 event with the parameters.
 
 The events of hinge are sent and delivered asyncronously
-so that a long chain of even subscribers will not block the event
+so that a long chain of event subscribers will not block the event
 machine execution.
 
 ### TCP Servers and Clients
