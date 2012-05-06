@@ -42,7 +42,7 @@ until the socket is ready.
 ### ZMQ Sockets
 
 Wrapped around the implementations of the TCP Socket and Server classes
-allow the deliver of ZeroMQ messages as emitted "data" events and allows
+allow the delivery of ZeroMQ messages as emitted "data" events and allows
 the handling of blocking ZeroMQ socket sends with a callback.
 
 ### Async parallel work pool(s) with calling-thread-local, event-friendly result callbacks
