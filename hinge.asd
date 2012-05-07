@@ -35,4 +35,7 @@
                          ;; Network
                          (:file "socket" :depends-on ("pool" "emitter"))
                          (:file "zmq-socket" :depends-on ("socket"))
-                         (:file "server" :depends-on ("emitter" "helpers" "socket"))))))
+                         (:file "server" :depends-on ("emitter" "helpers" "socket"))
+
+                         (:module "http" :depends-on ("package" "server" "socket") :components
+                                  ((:file "package")))))))

@@ -4,7 +4,7 @@
 (in-package :hinge-example)
 
 (let ((server (make-instance 'http-server)))
-  (add-listener "request"
+  (add-listener server "request"
                 (lambda (request)
                   (format t "Request: ~S~%" request)
                   (describe request)))
