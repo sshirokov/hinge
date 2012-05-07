@@ -7,6 +7,7 @@
   :version "0.0.0"
   :depends-on (:ev
                :zmq
+               :closer-mop
                :bordeaux-threads
                :arnesi
                :log5
@@ -38,4 +39,6 @@
                          (:file "server" :depends-on ("emitter" "helpers" "socket"))
 
                          (:module "http" :depends-on ("package" "server" "socket") :components
-                                  ((:file "package")))))))
+                                  ((:file "package")
+                                   (:file "fsm" :depends-on ("package"))
+                                   (:file "http-server" :depends-on ("package" "fsm"))))))))
