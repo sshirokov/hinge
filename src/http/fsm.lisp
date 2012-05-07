@@ -14,9 +14,6 @@
 Every iteration of the event machine the `last-event' slot is updated with `get-internal-real-time' before
 the funcallable instance application.
 
-On `initialize-instance' a `:boot' event is fired into the machine into the current event. If your machine
-does not require bootstrapping, ensure this event does not fault your state transition.
-
 SUBCLASS NOTE: Make sure to include ```(:metaclass c2mop:funcallable-standard-class)``` in your
 subclass definition, or else the funcallable instance will not function correctly."))
 
@@ -43,9 +40,16 @@ See `defstate' for the reasoning and function. This method is closure plumbing."
              (funcall machine event)
              (values machine (state machine)))))))
 
-(defmethod initialize-instance :after ((machine standard-state-machine) &key)
-  "Fire a boot event in order to get the machine into the :initial state."
-  (funcall machine '(:event :boot)))
+(defmethod initialize-instance :after ((machine standard-state-machine) &key))
+
+(defmacro deffsm (name parents slots &rest options)
+  "Define an fsm `name' as in (defclass name parents slots options)
+This macro takes care of the inheritance chain of `standard-state-machine'
+and the funcallable metaclass"
+  `(defclass ,name ,(append (list 'standard-state-machine) parents)
+     ,slots
+     (:metaclass c2mop:funcallable-standard-class)
+     ,@options))
 
 (defmacro defstate (machine-type state-name (machine-sym event-sym) &body body)
   "Helper macro to define states for the machine of type `machine-type'.
