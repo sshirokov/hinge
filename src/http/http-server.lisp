@@ -105,6 +105,8 @@
 (deffsm body-fsm ()
   ())
 
+
+;;; Overall request parser
 (deffsm request-parser ()
   ((peer :initarg :peer :accessor peer)
 
@@ -139,7 +141,6 @@
 (defstate request-parser :read-headers (parser data)
   (let ((data (or (buffer parser) data)))
     (setf (buffer parser) nil)
-    (format t "Headers data: ~S~%" (babel:octets-to-string data))
 
     (flet ((finish (at)
              (if (not (equalp at :error))
@@ -166,6 +167,12 @@
            (return :error))
          (when (eql (state (headers-fsm parser)) :done)
            (return (1+ i))))))))
+
+(defstate request-parser :read-body (parser data)
+  (let ((data (or (buffer parser) data)))
+    (setf (buffer parser) nil)
+    (format t "Body data: ~S~%" (babel:octets-to-string data))
+    (values nil (buffer parser))))
 
 ;; HTTP Peer
 (defclass http-peer (emitter)
