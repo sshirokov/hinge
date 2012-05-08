@@ -104,7 +104,10 @@
                                         (subseq data at (length data)))))
 
                    (values
-                    (if (eql (state (headers-fsm parser)) :done) :read-body nil)
+                    (if (eql (state (headers-fsm parser)) :done)
+                        (prog1 :read-body
+                          :TODO-parse-headers)
+                        nil)
                     (buffer parser)))
                  :error)))
 
