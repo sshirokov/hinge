@@ -26,7 +26,31 @@
 
 ;;; Header block parser
 (deffsm header-fsm ()
-  ())
+  ()
+  (:default-initargs . (:state :seek-return-1)))
+
+(defstate header-fsm :seek-return-1 (fsm data)
+  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (when (char-equal (code-char data) #\Return)
+    :seek-newline-1))
+
+(defstate header-fsm :seek-newline-1 (fsm data)
+  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (if (char-equal (code-char data) #\Newline)
+    :seek-return-2
+    :error))
+
+(defstate header-fsm :seek-return-2 (fsm data)
+  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (if (char-equal (code-char data) #\Return)
+    :seek-newline-2
+    :seek-return-1))
+
+(defstate header-fsm :seek-newline-2 (fsm data)
+  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (if (char-equal (code-char data) #\Newline)
+      :done
+      :error))
 
 ;;; Body dumper
 (deffsm body-fsm ()
@@ -36,7 +60,7 @@
   ((peer :initarg :peer :accessor peer)
 
    (request-fsm :initform (make-instance 'request-fsm) :accessor request-fsm)
-   (headers-fsm :initform (make-instance 'header-fsm) :accessor header-fsm)
+   (headers-fsm :initform (make-instance 'header-fsm) :accessor headers-fsm)
    (body-fsm :initform (make-instance 'body-fsm) :accessor body-fsm)
 
    (buffer :initform nil :accessor buffer))
@@ -58,11 +82,26 @@
          (return (1+ i)))))))
 
 (defstate request-parser :read-headers (parser data)
-  (let ((data (or (buffer parser) data))
-        (recur (prog1 (buffer parser) (setf (buffer parser) nil))))
+  (let ((data (or (buffer parser) data)))
+    (setf (buffer parser) nil)
     (format t "Headers data: ~S~%" (babel:octets-to-string data))
 
-  (values nil (buffer parser))))
+    (flet ((finish (at)
+             (unless (>= at (length data))
+               (setf (buffer parser)
+                     (concatenate '(vector (unsigned-byte 8))
+                                  (if (buffer parser) (buffer parser) #())
+                                  (subseq data at (length data)))))
+
+             (values
+              (if (eql (state (headers-fsm parser)) :done) :read-body nil)
+              (buffer parser))))
+
+      (finish
+       (dotimes (i (length data) i)
+         (funcall (headers-fsm parser) (aref data i))
+         (when (eql (state (headers-fsm parser)) :done)
+           (return (1+ i))))))))
 
 ;; HTTP Peer
 (defclass http-peer ()
