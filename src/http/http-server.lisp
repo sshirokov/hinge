@@ -98,29 +98,6 @@
       :done
       :error))
 
-(defstate header-fsm :seek-return-1 (fsm data)
-  (format t "~S[~S] => ~S~%" fsm state (code-char data))
-  (when (char-equal (code-char data) #\Return)
-    :seek-newline-1))
-
-(defstate header-fsm :seek-newline-1 (fsm data)
-  (format t "~S[~S] => ~S~%" fsm state (code-char data))
-  (if (char-equal (code-char data) #\Newline)
-    :seek-return-2
-    :error))
-
-(defstate header-fsm :seek-return-2 (fsm data)
-  (format t "~S[~S] => ~S~%" fsm state (code-char data))
-  (if (char-equal (code-char data) #\Return)
-    :seek-newline-2
-    :seek-return-1))
-
-(defstate header-fsm :seek-newline-2 (fsm data)
-  (format t "~S[~S] => ~S~%" fsm state (code-char data))
-  (if (char-equal (code-char data) #\Newline)
-      :done
-      :error))
-
 ;;; Body dumper
 (deffsm body-fsm ()
   ())
