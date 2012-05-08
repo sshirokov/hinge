@@ -6,5 +6,25 @@
                 :if-let)
 
   (:export :http-server
-           :peer))
+
+           :http-request
+           :http-method
+           :resource
+           :version
+           :headers
+           :body
+
+           :http-response
+           :request
+           :status-code
+           :status-reason
+           :headers
+
+           :write-head
+           :set-headers
+           :header
+           :send
+           :end))
+
+
 (in-package :hinge.http)
