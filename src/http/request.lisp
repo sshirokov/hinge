@@ -7,3 +7,6 @@
    (version :initarg :version :accessor version)
    (headers :initarg :headers :accessor headers)
    (body :initarg :body :accessor body)))
+
+(defclass http-response (emitter)
+  ((request :initarg :request :accessor request)))

@@ -22,13 +22,14 @@
 
   (add-listener peer "request"
                 (lambda (parser)
-                  (let ((request (make-instance 'http-request :peer peer
-                                                :http-method (http-method (request-fsm parser))
-                                                :resource (resource (request-fsm parser))
-                                                :version (version (request-fsm parser))
-                                                :headers (headers (headers-fsm parser))
-                                                :body (body (body-fsm parser)))))
-                  (emit (server peer) "request" request))))
+                  (let* ((request (make-instance 'http-request :peer peer
+                                                 :http-method (http-method (request-fsm parser))
+                                                 :resource (resource (request-fsm parser))
+                                                 :version (version (request-fsm parser))
+                                                 :headers (headers (headers-fsm parser))
+                                                 :body (body (body-fsm parser))))
+                         (response (make-instance 'http-response :request request)))
+                  (emit (server peer) "request" request response))))
 
   (add-listener peer "error"
                 (lambda (e)
