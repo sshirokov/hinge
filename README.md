@@ -76,67 +76,103 @@ $ cd hinge
 $ make develop
 ```
 
+Once you run `make develop` you're free to use Hinge in other
+Lisp systems as long as you don't relocate the project directory.
+
 Fire up the REPL and evaluate the following.
-It should boot up and keep running an echo server on port 4545
+It should boot up and keep running an HTTP server on port 4545
 
 ```common-lisp
 (ql:quickload :hinge)
-(in-package :hinge)
+(defpackage :hinge-example
+  (:use :cl :hinge :hinge.http))
 
-(let ((server (make-instance 'server)))
-  (add-listener server "listening"
-                (lambda (server)
-                  (format t "~A is listening!~%" server)))
+(in-package :hinge-example)
 
-  (add-listener server "connection"
-                (lambda (peer)
-                  (format t "New client: ~A~%" peer)
-
-                  (add-listener peer "data"
-                                (lambda (data)
-                                  (format t "Echoing: ~S~&" (babel:octets-to-string data))
-                                  (send peer data
-                                        (lambda (sock)
-                                          (format t "Data written to peer.~&")))))
-
-                  (add-listener peer "close"
-                                (lambda (sock)
-                                  (format t "Peer: ~A left.~%" sock)))))
+(let ((server (make-instance 'http-server)))
+  (add-listener server "request"
+                (lambda (request response)
+                  (declare (ignorable request))
+                  (write-head response 200 '(("Content-Type" . "text/html")))
+                  (end response "Hello world!")))
 
   (bind server 4545))
 
-(progn
-  (format t "Starting echo server at ~A~%" (get-universal-time))
-  (run :default))
+(run :default)
 ```
 
-This should print some information stating the server is running and listening.
-From another shell you should now be able to communicate with the echo server
-by connecting to TCP port 4545 and sending data.
+You should now be able to throw HTTP requests at localhost:4545 with something
+like `curl` and get replies:
 
 ```sh
-$ nc localhost 4545
-Hello World.
-Hello World. # Output
-Echo
-Echo # Output
+$ time curl -i localhost:4545
+HTTP/1.1 200 OK
+Content-Length: 12
+Content-Type: text/html
+
+Hello world!
+real	0m0.006s
+user	0m0.004s
+sys	0m0.000s
 ```
 
-You can watch the server react in the REPL. Somewhat like this:
+You can also throw something like `ab` at it,
+which is somewhat mandatory despite being a poor benchmark:
 
-```
-Starting echo server at 3541190006
-#<SERVER {1007B10003}> is listening!
-New client: #<SOCKET {10053E2B03}>
-Echoing: "Hello World.
-"
-Invoking callback: #<FUNCTION (LAMBDA (SOCK)) {1007E0DD2B}>
-Data written to peer.
-Socket drained: #<SOCKET {10053E2B03}>
-Echoing: "Echo
-"
-Invoking callback: #<FUNCTION (LAMBDA (SOCK)) {1007E0DD2B}>
-Data written to peer.
-Socket drained: #<SOCKET {10053E2B03}>
-Peer: #<SOCKET {10053E2B03}> left.
+```sh
+$ ab -c 10 -n 1000 http://localhost:4545/
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Completed 400 requests
+Completed 500 requests
+Completed 600 requests
+Completed 700 requests
+Completed 800 requests
+Completed 900 requests
+Completed 1000 requests
+Finished 1000 requests
+
+
+Server Software:
+Server Hostname:        localhost
+Server Port:            4545
+
+Document Path:          /
+Document Length:        12 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.397 seconds
+Complete requests:      1000
+Failed requests:        0
+Write errors:           0
+Total transferred:      51000 bytes
+HTML transferred:       12000 bytes
+Requests per second:    2519.51 [#/sec] (mean)
+Time per request:       3.969 [ms] (mean)
+Time per request:       0.397 [ms] (mean, across all concurrent requests)
+Transfer rate:          125.48 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       0
+Processing:     2    3   9.7      3     214
+Waiting:        1    2   9.6      2     213
+Total:          2    3   9.7      3     214
+
+Percentage of the requests served within a certain time (ms)
+  50%      3
+  66%      3
+  75%      3
+  80%      3
+  90%      3
+  95%      3
+  98%      4
+  99%      5
+ 100%    214 (longest request)
 ```
