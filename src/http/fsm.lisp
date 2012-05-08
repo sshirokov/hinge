@@ -58,12 +58,12 @@ subclasses of `standard-state-machine' should use this property to extend the st
 
 `state-name' is the identifier for this state, and names it. Event invocations will
 use this name to determine which state the machine is in, and error out if one cannot be found.
-The event will be bound to the symbol named `event-sym' declared as in a one-argument lambda list.
+The event will be bound to the symbol named `event-sym' declared as in a two-argument lambda list.
 Each invocation of this state with the even bound to `event-sym' will evaluate `body' forms as
 in a method invocation and the resulting value of the evaluation should return the next state
 for the machine as a `:keyword', or `nil' to indicate the machine should remain in its current state.
-The symbol `machine' will be bound to the currently executing state machine. The current state is
-available in `state'
+The symbol named by `machine-sym' will be bound to the currently executing state machine.
+The current state is available in `state', though should be accessed as \"(state machine-sym)\"
 
 If the state produces two-value return, it is interpreted as (values next-state recur-event)
 and if recur-event is non-nil the same event is sent into the machine again after performing
