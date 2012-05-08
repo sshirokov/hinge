@@ -7,7 +7,7 @@
 (defmethod initialize-instance :after ((server http-server) &key)
   (add-listener server "connection"
                 (lambda (client)
-                  (make-instance 'http-peer :socket client))))
+                  (make-instance 'http-peer :server server :socket client))))
 
 ;; HTTP Parser
 ;;; Request line parser
@@ -103,16 +103,23 @@
 
 ;;; Body dumper
 (deffsm body-fsm ()
-  ())
+  ((body :initform (vector) :accessor body)
+   (remaining :initform 0 :accessor remaining)))
 
+(defstate body-fsm :initial (fsm event)
+  (format t "TODO: Collect body mass upto ~S~%" (remaining fsm)))
+
+(defstate body-fsm :skip (fsm event)
+  "Do nothing, we don't care"
+  (declare (ignore fsm event)))
 
 ;;; Overall request parser
 (deffsm request-parser ()
   ((peer :initarg :peer :accessor peer)
 
-   (request-fsm :initform (make-instance 'request-fsm) :accessor request-fsm)
-   (headers-fsm :initform (make-instance 'header-fsm) :accessor headers-fsm)
-   (body-fsm :initform (make-instance 'body-fsm) :accessor body-fsm)
+   (request-fsm :accessor request-fsm :initform (make-instance 'request-fsm))
+   (headers-fsm :accessor headers-fsm :initform (make-instance 'header-fsm))
+   (body-fsm :accessor body-fsm :initform (make-instance 'body-fsm))
 
    (buffer :initform nil :accessor buffer))
   (:default-initargs . (:state :read-request)))
@@ -166,6 +173,13 @@
            (emit (peer parser) "error" "Header Parser Error")
            (return :error))
          (when (eql (state (headers-fsm parser)) :done)
+           (let* ((con-len (cdr (assoc "content-length" (headers (headers-fsm parser)) :test #'string-equal)))
+                  (con-len (parse-integer (or con-len "") :junk-allowed t))
+                  (con-len (or con-len 0)))
+             (format t "=> Content-Length: ~S~%" con-len)
+             (when (zerop con-len)
+               (setf (state (body-fsm parser)) :skip)
+               (emit (peer parser) "request" parser)))
            (return (1+ i))))))))
 
 (defstate request-parser :read-body (parser data)
@@ -176,12 +190,18 @@
 
 ;; HTTP Peer
 (defclass http-peer (emitter)
-  ((socket :initarg :socket
+  ((server :initarg :server
+           :accessor server)
+   (socket :initarg :socket
            :accessor sock)
    (parser :accessor parser)))
 
 (defmethod initialize-instance :after ((peer http-peer) &key)
   (setf (parser peer) (make-instance 'request-parser :peer peer))
+
+  (add-listener peer "request"
+                (lambda (request)
+                  (emit (server peer) "request" request)))
 
   (add-listener peer "error"
                 (lambda (e)
