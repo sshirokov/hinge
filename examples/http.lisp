@@ -8,8 +8,10 @@
   (add-listener server "request"
                 (lambda (request response)
                   (declare (ignorable request))
-                  (write-head response 200 '(("Content-Type" . "text/html")))
-                  (end response "Hello world!")))
+                  (async (:success (lambda (r)
+                                     (write-head response 200 '(("Content-Type" . "text/html")))
+                                     (end response (format nil "Hello world! [~A]" r))))
+                    (random 1024))))
 
   (bind server 4545))
 
