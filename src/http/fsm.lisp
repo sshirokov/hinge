@@ -29,8 +29,7 @@ See `defstate' for the reasoning and function. This method is closure plumbing."
    #'(lambda (event)
        (log-for (state-machine trace) "~A event ~A" machine event)
        (multiple-value-bind (next-state recur-p)
-           (handler-case (standard-state-machine-event machine (state machine) event)
-             (simple-error () (error "State ~A of ~A is not defined." (state machine) machine)))
+           (standard-state-machine-event machine (state machine) event)
 
          (log-for (state-machine trace) "Next state: ~A Recur?: ~A" next-state recur-p)
          (setf (last-event machine) (get-internal-real-time)
