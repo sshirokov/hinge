@@ -29,7 +29,10 @@
                                                  :headers (headers (headers-fsm parser))
                                                  :body (body (body-fsm parser))))
                          (response (make-instance 'http-response :request request)))
-                  (emit (server peer) "request" request response))))
+                    (when (string-equal (cdr (assoc "Connection" (headers request) :test #'string-equal))
+                                        "close")
+                      (setf (header response "Connection") "close"))
+                    (emit (server peer) "request" request response))))
 
   (add-listener peer "error"
                 (lambda (e)
