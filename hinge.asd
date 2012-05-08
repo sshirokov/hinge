@@ -41,4 +41,6 @@
                          (:module "http" :depends-on ("package" "server" "socket") :components
                                   ((:file "package")
                                    (:file "fsm" :depends-on ("package"))
-                                   (:file "http-server" :depends-on ("package" "fsm"))))))))
+                                   (:file "parser" :depends-on ("fsm"))
+                                   (:file "request" :depends-on ("package"))
+                                   (:file "http-server" :depends-on ("parser" "request"))))))))
