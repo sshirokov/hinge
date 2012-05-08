@@ -41,11 +41,8 @@
 
   (add-listener (sock peer) "data"
                 (lambda (data)
-                  (format t "Request data: ~S~%" (babel:octets-to-string data))
-                  (funcall (parser peer) data)
-                  (format t "Parser state: ~S~%" (state (parser peer)))))
+                  (funcall (parser peer) data)))
 
   (add-listener (sock peer) "close"
                 (lambda (_)
-                  (declare (ignore _))
-                  (format t "Peer ~S left~%" peer))))
+                  (declare (ignore _)))))

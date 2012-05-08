@@ -184,7 +184,6 @@ content-length read to be re-sent as data")))
            (let* ((con-len (cdr (assoc "content-length" (headers (headers-fsm parser)) :test #'string-equal)))
                   (con-len (parse-integer (or con-len "") :junk-allowed t))
                   (con-len (or con-len 0)))
-             (format t "=> Content-Length: ~S~%" con-len)
              (if (zerop con-len)
                  (progn
                    (setf (state (body-fsm parser)) :done)

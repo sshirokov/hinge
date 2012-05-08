@@ -108,7 +108,7 @@ or if the parser machinery of the peer needs to be reloaded."))
 
 (defmethod begin ((response http-response))
   (unless (status-sent-p response)
-    (write-head 200 "OK"))
+    (write-head response 200 "OK"))
 
   (unless (headers-sent-p response)
     (write-headers response)))
@@ -137,7 +137,7 @@ written first."
     (begin response)
 
     (if (string-equal (header response "Transfer-Encoding") "chunked")
-        (format t "TODO: Chunked encoding is not supported")
+        (format t "TODO: Chunked encoding is not yet supported")
         (send (sock (peer (request response)))
               bindata))))
 
@@ -146,10 +146,10 @@ written first."
       (send response data)
       (begin response))
 
-  (if (string-equal (header response "Connection") "close")
+  (if (or (string-equal (header response "Connection") "close")
+          (string-equal (version (request response)) "HTTP/1.0"))
       (add-listener (sock (peer (request response))) "drain"
                     (lambda (sock)
-                      (format t "~S Closing connection after body send.~%" (peer (request response)))
                       (close sock)))
 
       (setf (parser (peer (request response)))
