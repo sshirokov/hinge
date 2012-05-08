@@ -16,8 +16,10 @@
 
 (defstate request-fsm :initial (fsm data)
   (format t "~S => ~S~%" fsm (code-char data))
-  (when (char-equal (code-char data) #\Return)
-    :seek-newline))
+  (cond ((char-equal (code-char data) #\Return)
+         :seek-newline)
+        ((char-equal (code-char data) #\Newline)
+         :error)))
 
 (defstate request-fsm :seek-newline (fsm data)
   (if (char-equal (code-char data) #\Newline)
@@ -30,24 +32,24 @@
   (:default-initargs . (:state :seek-return-1)))
 
 (defstate header-fsm :seek-return-1 (fsm data)
-  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (format t "~S[~S] => ~S~%" fsm state (code-char data))
   (when (char-equal (code-char data) #\Return)
     :seek-newline-1))
 
 (defstate header-fsm :seek-newline-1 (fsm data)
-  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (format t "~S[~S] => ~S~%" fsm state (code-char data))
   (if (char-equal (code-char data) #\Newline)
     :seek-return-2
     :error))
 
 (defstate header-fsm :seek-return-2 (fsm data)
-  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (format t "~S[~S] => ~S~%" fsm state (code-char data))
   (if (char-equal (code-char data) #\Return)
     :seek-newline-2
     :seek-return-1))
 
 (defstate header-fsm :seek-newline-2 (fsm data)
-  (format "~S[~S] => ~S~%" fsm state (code-char data))
+  (format t "~S[~S] => ~S~%" fsm state (code-char data))
   (if (char-equal (code-char data) #\Newline)
       :done
       :error))
@@ -68,16 +70,23 @@
 
 (defstate request-parser :read-request (parser data)
   (flet ((finish (at)
-           (unless (>= at (length data))
-             (setf (buffer parser) (subseq data at (length data))))
+           (if (not (equalp at :error))
+               (progn
+                 (unless (>= at (length data))
+                   (setf (buffer parser) (subseq data at (length data))))
 
-           (values
-            (if (eql (state (request-fsm parser)) :done) :read-headers nil)
-            (buffer parser))))
+                 (values
+                  (if (eql (state (request-fsm parser)) :done) :read-headers nil)
+                  (buffer parser)))
+               (progn
+                 :error))))
 
     (finish
      (dotimes (i (length data) i)
        (funcall (request-fsm parser) (aref data i))
+       (when (eql (state (request-fsm parser)) :error)
+         (emit (peer parser) "error" "Parser Error")
+         (return :error))
        (when (eql (state (request-fsm parser)) :done)
          (return (1+ i)))))))
 
@@ -104,13 +113,18 @@
            (return (1+ i))))))))
 
 ;; HTTP Peer
-(defclass http-peer ()
+(defclass http-peer (emitter)
   ((socket :initarg :socket
            :accessor sock)
    (parser :accessor parser)))
 
 (defmethod initialize-instance :after ((peer http-peer) &key)
   (setf (parser peer) (make-instance 'request-parser :peer peer))
+
+  (add-listener peer "error"
+                (lambda (e)
+                  (format t "Error: ~S~%" e)
+                  (close (sock peer))))
 
   (add-listener (sock peer) "data"
                 (lambda (data)
