@@ -12,17 +12,41 @@
 ;; HTTP Parser
 ;;; Request line parser
 (deffsm request-fsm ()
-  ())
+  ((http-method :initform (string "") :accessor http-method)
+   (resource :initform (string "") :accessor resource)
+   (version :initform (string "") :accessor version))
+  (:default-initargs . (:state :read-http-method)))
 
-(defstate request-fsm :initial (fsm data)
-  (format t "~S => ~S~%" fsm (code-char data))
-  (cond ((char-equal (code-char data) #\Return)
-         :seek-newline)
-        ((char-equal (code-char data) #\Newline)
-         :error)))
+(defun whitespace-p (code)
+  "Is the `code' a code-char for a whitespace char?"
+  (member (code-char code) `(#\Newline #\Linefeed #\Return #\Space #\Tab)))
 
-(defstate request-fsm :seek-newline (fsm data)
-  (if (char-equal (code-char data) #\Newline)
+(defstate request-fsm :read-http-method (fsm cc)
+  (if (not (whitespace-p cc))
+      (not (setf (http-method fsm) (concatenate 'string (http-method fsm) (list (code-char cc)))))
+
+      (if (char-equal (code-char cc) #\Space)
+          :read-resource
+          :error)))
+
+(defstate request-fsm :read-resource (fsm cc)
+  (if (not (whitespace-p cc))
+      (not (setf (resource fsm) (concatenate 'string (resource fsm) (list (code-char cc)))))
+
+      (if (char-equal (code-char cc) #\Space)
+          :read-version
+          :error)))
+
+(defstate request-fsm :read-version (fsm cc)
+  (if (not (whitespace-p cc))
+      (not (setf (version fsm) (concatenate 'string (version fsm) (list (code-char cc)))))
+
+      (if (char-equal (code-char cc) #\Return)
+          :seek-newline
+          :error)))
+
+(defstate request-fsm :seek-newline (fsm cc)
+  (if (char-equal (code-char cc) #\Newline)
       :done
       :error))
 
