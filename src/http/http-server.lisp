@@ -52,8 +52,51 @@
 
 ;;; Header block parser
 (deffsm header-fsm ()
-  ()
-  (:default-initargs . (:state :seek-return-1)))
+  ((headers :initform (list) :accessor headers)
+   (key-buffer :initform (string "") :accessor key-buffer)
+   (value-buffer :initform (string "") :accessor value-buffer))
+  (:default-initargs . (:state :read-key)))
+
+(defstate header-fsm :read-key (fsm cc)
+  (cond ((not (or (char-equal (code-char cc) #\:)
+                  (whitespace-p cc)))
+         (not (setf (key-buffer fsm) (concatenate 'string (key-buffer fsm) (list (code-char cc))))))
+
+        ((char-equal (code-char cc) #\:)
+         :read-space)
+
+        (:otherwise
+         :error)))
+
+(defstate header-fsm :read-space (fsm cc)
+  (if (char-equal (code-char cc) #\Space)
+      :read-value
+      :error))
+
+(defstate header-fsm :read-value (fsm cc)
+  (cond ((not (member (code-char cc) '(#\Newline #\Return)))
+         (not (setf (value-buffer fsm) (concatenate 'string (value-buffer fsm) (list (code-char cc))))))
+
+        ((char-equal (code-char cc) #\Return)
+         :read-newline)
+
+        (:otherwise
+         :error)))
+
+(defstate header-fsm :read-newline (fsm cc)
+  (if (char-equal (code-char cc) #\Newline)
+      :key-or-done
+      :error))
+
+(defstate header-fsm :key-or-done (fsm cc)
+  (if (char-equal (code-char cc) #\Return)
+      :expect-finish
+      (values :read-key t)))
+
+(defstate header-fsm :expect-finish (fsm cc)
+  (if (char-equal (code-char cc) #\Newline)
+      :done
+      :error))
 
 (defstate header-fsm :seek-return-1 (fsm data)
   (format t "~S[~S] => ~S~%" fsm state (code-char data))
@@ -114,8 +157,8 @@
          (return (1+ i)))))))
 
 (defstate request-parser :read-headers (parser data)
-  (let ((data (or (buffer parser) data)))
-    (setf (buffer parser) nil)
+  (let ((data (or (buffer parser) data))
+        (recur (prog1 (buffer parser) (setf (buffer parser) nil))))
     (format t "Headers data: ~S~%" (babel:octets-to-string data))
 
     (flet ((finish (at)
@@ -132,7 +175,7 @@
                         (prog1 :read-body
                           :TODO-parse-headers)
                         nil)
-                    (buffer parser)))
+                    recur))
                  :error)))
 
       (finish
