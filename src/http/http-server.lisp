@@ -10,6 +10,7 @@
                   (make-instance 'http-peer :socket client))))
 
 ;; HTTP Parser
+;;; Request line parser
 (deffsm request-fsm ()
   ())
 
@@ -23,9 +24,11 @@
       :done
       :error))
 
+;;; Header block parser
 (deffsm header-fsm ()
   ())
 
+;;; Body dumper
 (deffsm body-fsm ()
   ())
 
