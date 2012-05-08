@@ -31,6 +31,7 @@
            :async
 
            :emit
+           :emitter
            :add-listener
            :listen-once
            :remove-listener
