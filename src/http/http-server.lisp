@@ -55,7 +55,7 @@
   ((headers :initform (list) :accessor headers)
    (key-buffer :initform (string "") :accessor key-buffer)
    (value-buffer :initform (string "") :accessor value-buffer))
-  (:default-initargs . (:state :read-key)))
+  (:default-initargs . (:state :key-or-done)))
 
 (defstate header-fsm :read-key (fsm cc)
   (cond ((not (or (char-equal (code-char cc) #\:)
