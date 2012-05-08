@@ -228,12 +228,26 @@ content-length read to be re-sent as data")))
            :accessor sock)
    (parser :accessor parser)))
 
+(defclass http-request (emitter)
+  ((peer :initarg :peer :accessor peer)
+   (http-method :initarg :http-method :accessor http-method)
+   (resource :initarg :resource :accessor resource)
+   (version :initarg :version :accessor version)
+   (headers :initarg :headers :accessor headers)
+   (body :initarg :body :accessor body)))
+
 (defmethod initialize-instance :after ((peer http-peer) &key)
   (setf (parser peer) (make-instance 'request-parser :peer peer))
 
   (add-listener peer "request"
-                (lambda (request)
-                  (emit (server peer) "request" request)))
+                (lambda (parser)
+                  (let ((request (make-instance 'http-request :peer peer
+                                                :http-method (http-method (request-fsm parser))
+                                                :resource (resource (request-fsm parser))
+                                                :version (version (request-fsm parser))
+                                                :headers (headers (headers-fsm parser))
+                                                :body (body (body-fsm parser)))))
+                  (emit (server peer) "request" request))))
 
   (add-listener peer "error"
                 (lambda (e)
