@@ -177,15 +177,20 @@
                   (con-len (parse-integer (or con-len "") :junk-allowed t))
                   (con-len (or con-len 0)))
              (format t "=> Content-Length: ~S~%" con-len)
-             (when (zerop con-len)
-               (setf (state (body-fsm parser)) :skip)
-               (emit (peer parser) "request" parser)))
+             (if (zerop con-len)
+                 (progn
+                   (setf (state (body-fsm parser)) :skip)
+                   (emit (peer parser) "request" parser))
+                 (setf (remaining (body-fsm parser)) con-len)))
            (return (1+ i))))))))
 
 (defstate request-parser :read-body (parser data)
   (let ((data (or (buffer parser) data)))
     (setf (buffer parser) nil)
-    (format t "Body data: ~S~%" (babel:octets-to-string data))
+    (funcall (body-fsm parser) data)
+    (when (eql (state (body-fsm parser)) :done)
+      (setf (state (body-fsm parser)) :skip)
+      (emit (peer parser) "request" parser))
     (values nil (buffer parser))))
 
 ;; HTTP Peer
