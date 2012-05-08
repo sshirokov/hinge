@@ -78,6 +78,9 @@
          (not (setf (value-buffer fsm) (concatenate 'string (value-buffer fsm) (list (code-char cc))))))
 
         ((char-equal (code-char cc) #\Return)
+         (push (cons (key-buffer fsm) (value-buffer fsm)) (headers fsm))
+         (setf (key-buffer fsm) (string "")
+               (value-buffer fsm) (string ""))
          :read-newline)
 
         (:otherwise
