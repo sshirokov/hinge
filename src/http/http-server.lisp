@@ -157,8 +157,8 @@
          (return (1+ i)))))))
 
 (defstate request-parser :read-headers (parser data)
-  (let ((data (or (buffer parser) data))
-        (recur (prog1 (buffer parser) (setf (buffer parser) nil))))
+  (let ((data (or (buffer parser) data)))
+    (setf (buffer parser) nil)
     (format t "Headers data: ~S~%" (babel:octets-to-string data))
 
     (flet ((finish (at)
@@ -175,7 +175,7 @@
                         (prog1 :read-body
                           :TODO-parse-headers)
                         nil)
-                    recur))
+                    (buffer parser)))
                  :error)))
 
       (finish
