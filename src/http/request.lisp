@@ -52,8 +52,41 @@ This method checks the `Connection' header to determine if
 the socket should be closed once the response is written,
 or if the parser machinery of the peer needs to be reloaded."))
 
-
 ;; Response methods
+(defmethod write-head ((response http-response) status &optional reason/headers headers)
+  (let ((reason (typecase reason/headers
+                  (string reason/headers)
+                  (otherwise "OK")))
+        (headers (typecase reason/headers
+                   (list reason/headers)
+                   (otherwise (or headers ())))))
+
+    (send (sock (peer (request response)))
+          (babel:octets-to-string
+           (format nil "~A ~A ~A~A~A" (version (request response)) status reason #\Return #\Newline)))
+    (setf (status-sent response) t)
+
+    (when headers
+      (set-headers response headers))))
+
+(defmethod set-headers ((response http-response) headers)
+  (mapc #'(lambda (header-pair)
+            (destructuring-bind (key . value) header-pair
+              (set-header response key value)))
+        headers))
+
+(defmethod set-header ((response http-response) (key symbol) value)
+  (set-header response (symbol-name key) value))
+(defmethod set-header ((response http-response) (key string) value)
+  (if-let (header (assoc key (headers response) :test #'string-equal))
+    (rplacd header value)
+    (push (cons key value) (headers response))))
+
+(defmethod header ((response http-response) (key symbol))
+  (header response (symbol-name key)))
+(defmethod header ((response http-response) (key string))
+  (cdr (assoc key (headers response) :test #'string-equal)))
+
 (defmethod send ((response http-response) data &optional callback)
   (declare (ignore callback))
   "Send a chunk to the client. If this is the first chunk
