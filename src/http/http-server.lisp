@@ -104,12 +104,29 @@
 ;;; Body dumper
 (deffsm body-fsm ()
   ((body :initform (vector) :accessor body)
-   (remaining :initform 0 :accessor remaining)))
+   (remaining :initform 0 :accessor remaining)
+
+   (buffer :initform nil :accessor buffer
+           :documentation "Stores any left-overs from the
+content-length read to be re-sent as data")))
 
 (defstate body-fsm :initial (fsm event)
-  (format t "TODO: Collect body mass upto ~S~%" (remaining fsm)))
+  (let ((next (cond ((>= (length event) (remaining fsm))
+                     (setf (body fsm) (concatenate '(vector (unsigned-byte 8))
+                                                   (body fsm)
+                                                   (subseq event 0 (remaining fsm)))
+                           (buffer fsm) (subseq event (remaining fsm) (length event))
+                           (buffer fsm) (when (length (buffer fsm)) (buffer fsm))
+                           (remaining fsm) 0)
+                     :done)
+                    (:otherwise
+                     (setf (body fsm) (concatenate '(vector (unsigned-byte 8))
+                                                   (body fsm)
+                                                   event))
+                     nil))))
+    (values next (buffer fsm))))
 
-(defstate body-fsm :skip (fsm event)
+(defstate body-fsm :done (fsm event)
   "Do nothing, we don't care"
   (declare (ignore fsm event)))
 
@@ -179,7 +196,7 @@
              (format t "=> Content-Length: ~S~%" con-len)
              (if (zerop con-len)
                  (progn
-                   (setf (state (body-fsm parser)) :skip)
+                   (setf (state (body-fsm parser)) :done)
                    (emit (peer parser) "request" parser))
                  (setf (remaining (body-fsm parser)) con-len)))
            (return (1+ i))))))))
@@ -187,11 +204,21 @@
 (defstate request-parser :read-body (parser data)
   (let ((data (or (buffer parser) data)))
     (setf (buffer parser) nil)
+
     (funcall (body-fsm parser) data)
-    (when (eql (state (body-fsm parser)) :done)
-      (setf (state (body-fsm parser)) :skip)
-      (emit (peer parser) "request" parser))
-    (values nil (buffer parser))))
+
+    (values (cond ((eql (state (body-fsm parser)) :error)
+                   (emit (peer parser) "error" "Body Reader Error")
+                   :error)
+                  ((eql (state (body-fsm parser)) :done)
+                   (emit (peer parser) "request" parser)
+
+                   ;; Send any leftover data as a fresh data event
+                   (when (buffer (body-fsm parser))
+                     (emit (peer parser) "data" (buffer (body-fsm parser))))
+
+                   :done))
+            (buffer parser))))
 
 ;; HTTP Peer
 (defclass http-peer (emitter)
