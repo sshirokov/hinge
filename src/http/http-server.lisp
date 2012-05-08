@@ -78,14 +78,13 @@
                  (values
                   (if (eql (state (request-fsm parser)) :done) :read-headers nil)
                   (buffer parser)))
-               (progn
-                 :error))))
+               :error)))
 
     (finish
      (dotimes (i (length data) i)
        (funcall (request-fsm parser) (aref data i))
        (when (eql (state (request-fsm parser)) :error)
-         (emit (peer parser) "error" "Parser Error")
+         (emit (peer parser) "error" "Request Line Parser Error")
          (return :error))
        (when (eql (state (request-fsm parser)) :done)
          (return (1+ i)))))))
@@ -96,19 +95,25 @@
     (format t "Headers data: ~S~%" (babel:octets-to-string data))
 
     (flet ((finish (at)
-             (unless (>= at (length data))
-               (setf (buffer parser)
-                     (concatenate '(vector (unsigned-byte 8))
-                                  (if (buffer parser) (buffer parser) #())
-                                  (subseq data at (length data)))))
+             (if (not (equalp at :error))
+                 (progn
+                   (unless (>= at (length data))
+                     (setf (buffer parser)
+                           (concatenate '(vector (unsigned-byte 8))
+                                        (if (buffer parser) (buffer parser) #())
+                                        (subseq data at (length data)))))
 
-             (values
-              (if (eql (state (headers-fsm parser)) :done) :read-body nil)
-              (buffer parser))))
+                   (values
+                    (if (eql (state (headers-fsm parser)) :done) :read-body nil)
+                    (buffer parser)))
+                 :error)))
 
       (finish
        (dotimes (i (length data) i)
          (funcall (headers-fsm parser) (aref data i))
+         (when (eql (state (headers-fsm parser)) :error)
+           (emit (peer parser) "error" "Header Parser Error")
+           (return :error))
          (when (eql (state (headers-fsm parser)) :done)
            (return (1+ i))))))))
 
