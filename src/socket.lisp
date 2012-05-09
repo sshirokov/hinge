@@ -148,7 +148,9 @@ and emits the event."
                       (prog1 (emit socket "data" (subseq data 0 size))
                         (log-for (debug) "Emitting data on ~S" socket)))))
             (iolib.syscalls:ewouldblock () nil))
-          (log-for (debug) "Socket ~S not connected" socket))
+          (progn
+            (log-for (debug) "Socket ~S not connected" socket)
+            (close socket)))
       (close socket)))
 
 (defmethod on-write ((socket socket))
