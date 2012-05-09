@@ -50,7 +50,7 @@ when finished with to avoid leaking in foreign code."
          (res (cond ((and (= res -1)
                           (= (sb-alien:get-errno) sb-posix:eagain)
                           (not (member :noblock flags)))
-                     (send! sock msg flags (1+ count)))
+                     (send! sock msg flags (1+ (or count 0))))
 
                     (:otherwise
                      (if (member :noblock flags)
@@ -66,7 +66,7 @@ when finished with to avoid leaking in foreign code."
          (res (cond ((and (= res -1)
                           (= (sb-alien:get-errno) sb-posix:eagain)
                           (not (member :noblock flags)))
-                     (recv! sock msg flags (1+ count)))
+                     (recv! sock msg flags (1+ (or count 0))))
 
                     (:otherwise
                      (if (member :noblock flags)
