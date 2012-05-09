@@ -156,21 +156,23 @@ and emits the event."
       (close socket)))
 
 (defmethod on-write ((socket socket))
-  (let ((data (first (writes socket))))
-    (if data
-        (let* ((buffer (svref data 0))
-               (start (svref data 1))
-               (callback (svref data 2))
-               (written (sockets:send-to (sock socket) buffer :start start :dont-wait t)))
-          (when (= (incf (svref data 1) written) (length buffer))
-            (pop (writes socket))
-            (defer ((owner socket))
-              (funcall callback socket))))
+  (if (sockets:socket-open-p (sock socket))
+      (let ((data (first (writes socket))))
+        (if data
+            (let* ((buffer (svref data 0))
+                   (start (svref data 1))
+                   (callback (svref data 2))
+                   (written (sockets:send-to (sock socket) buffer :start start :dont-wait t)))
+              (when (= (incf (svref data 1) written) (length buffer))
+                (pop (writes socket))
+                (defer ((owner socket))
+                  (funcall callback socket))))
 
-        (progn
-          (log-for (debug) "Socket drained: ~A" socket)
-          (ev:stop-watcher (owner socket) (svref (watchers socket) 1) :keep-callback t)
-          (emit socket "drain" socket)))))
+            (progn
+              (log-for (debug) "Socket drained: ~A" socket)
+              (ev:stop-watcher (owner socket) (svref (watchers socket) 1) :keep-callback t)
+              (emit socket "drain" socket))))
+      (close socket)))
 
 (defmethod pause ((socket socket))
   (prog1 socket
