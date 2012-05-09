@@ -13,7 +13,7 @@
 
    (status-code :initform 200 :accessor status-code)
    (status-reason :initform "OK" :accessor status-reason)
-   (headers :initform (list) :accessor headers)
+   (headers :initform (list (cons "Transfer-Encoding" "chunked")) :accessor headers)
 
    (status-sent :initform nil :accessor status-sent :accessor status-sent-p)
    (headers-sent :initform nil :accessor headers-sent-p :accessor headers-sent)
@@ -137,7 +137,18 @@ written first."
     (begin response)
 
     (if (string-equal (header response "Transfer-Encoding") "chunked")
-        (format t "TODO: Chunked encoding is not yet supported")
+        (progn
+          (send (sock (peer (request response)))
+                (babel:string-to-octets
+                 (format nil "~x~A~A" (length bindata) #\Return #\Newline)))
+
+          (send (sock (peer (request response)))
+                bindata)
+
+          (send (sock (peer (request response)))
+                (babel:string-to-octets
+                 (format nil "~A~A" #\Return #\Newline))))
+
         (send (sock (peer (request response)))
               bindata))))
 
@@ -146,8 +157,14 @@ written first."
       (send response data)
       (begin response))
 
+  (when (string-equal (header response "Transfer-Encoding") "chunked")
+    (send (sock (peer (request response)))
+          (babel:string-to-octets
+           (format nil "0~A~A~A~A" #\Return #\Newline #\Return #\Newline))))
+
   (if (or (string-equal (header response "Connection") "close")
           (string-equal (version (request response)) "HTTP/1.0"))
+
       (add-listener (sock (peer (request response))) "drain"
                     (lambda (sock)
                       (close sock)))
