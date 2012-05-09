@@ -4,7 +4,7 @@
 
 (defsystem :hinge
   :description "A synonym for node. Something like an evented framework in and for CL."
-  :version "0.0.0"
+  :version "0.0.1"
   :depends-on (:ev
                :zmq
                :closer-mop
