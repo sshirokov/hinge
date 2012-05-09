@@ -66,7 +66,9 @@ is non-nil, the timer is not restarted."
   "Set an inactivity timeout on the socket `socket' of `timeout' seconds.
 Callback must be specified, but can be `nil'. The `callback' parameter
 does not affect the emission of the \"timeout\" event."
-  (unless (svref (watchers socket) 2)
+  (when (and (not (svref (watchers socket) 2))
+             (svref (watchers socket) 0))
+
     (flet ((timeout-cb (l watcher e)
              (declare (ignore e))
              (ev:stop-watcher l watcher :keep-callback t)
