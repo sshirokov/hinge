@@ -144,6 +144,7 @@ fire any leftover callbacks as failure."
 ;;;; Methods
 (defmethod make-worker ((pool pool) &optional (id :somekind))
   (flet ((work-fn ()
+           (setf *random-state* (make-random-state t))
            (zmq:with-sockets ((work (context pool) :pull)
                               (result (context pool) :pub))
              (zmq:connect work (work-address pool))
