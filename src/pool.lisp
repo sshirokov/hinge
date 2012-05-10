@@ -5,7 +5,10 @@
   "Wrapper to return a hash table that is safe
 to use concurrently. `args' are passed on as to `make-hash-table'"
   ;; TODO: Feature checks for other lisps
-  (apply #'make-hash-table :synchronized t args))
+  (apply #'make-hash-table
+         (append
+          #+sbcl (list :synchronized t)
+          args)))
 
 ;; Classes
 ;;; Job Class
