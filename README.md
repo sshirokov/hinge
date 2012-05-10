@@ -11,6 +11,9 @@ Driven by [libev](http://software.schmorp.de/pkg/libev.html), like the cool kids
 * [ZeroMQ](http://www.zeromq.org/) (2.1.11+)
 * [SBCL](http://www.sbcl.org/) (With thread support)
 
+[CCL](http://ccl.clozure.com/) I also supported, but SBCL is the
+primary development platform, and is favored in the makefiles.
+
 ### Dependencies built outside of quicklisp
 
 These deps are fetched and built with `make develop`
