@@ -48,7 +48,7 @@ when finished with to avoid leaking in foreign code."
   (let* (condition
          (res (handler-case (zmq:send sock msg flags) (zmq:zmq-error (c) (setf condition c) -1)))
          (res (cond ((and (= res -1)
-                          (= (sb-alien:get-errno) sb-posix:eagain)
+                          (= (iolib.syscalls:errno) (foreign-enum-value 'error-code :eagain))
                           (not (member :noblock flags)))
                      (send! sock msg flags (1+ (or count 0))))
 
@@ -64,7 +64,7 @@ when finished with to avoid leaking in foreign code."
   (let* (condition
          (res (handler-case (zmq:recv sock msg flags) (zmq:zmq-error (c) (setf condition c) -1)))
          (res (cond ((and (= res -1)
-                          (= (sb-alien:get-errno) sb-posix:eagain)
+                          (= (iolib.syscalls:errno) (foreign-enum-value 'error-code :eagain))
                           (not (member :noblock flags)))
                      (recv! sock msg flags (1+ (or count 0))))
 
