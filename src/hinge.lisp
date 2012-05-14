@@ -16,7 +16,7 @@
   ((owner :initarg :owner :accessor owner)
 
    (queue :initform (make-instance 'queue) :accessor queue)
-   (priority :initform 0 :accessor priority)
+   (priority :initarg :priority :initform 0 :accessor priority)
    (runner :initform (make-instance 'ev:ev-idle) :accessor runner))
   (:metaclass c2mop:funcallable-standard-class)
   (:documentation "A wrapper that binds together a queue and an idle runner
