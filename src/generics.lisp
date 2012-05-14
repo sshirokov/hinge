@@ -15,5 +15,5 @@ to be invoked every `timeout'"))
 
 ;; Wrappers
 (defmacro defer ((hinge) &body forms)
-  "Defer execution of `forms' to later, but very soon."
-  `(set-timeout ,hinge 0 (lambda () ,@forms)))
+  `(enqueue (defer-queue ,hinge)
+            (lambda () ,@forms)))
