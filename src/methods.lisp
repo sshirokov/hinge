@@ -3,9 +3,13 @@
 ;; Methods
 (defmethod initialize-instance :after ((hinge hinge) &key)
   (setf (bg-pool hinge)
-        (make-instance 'pool :owner hinge)))
+        (make-instance 'pool :owner hinge)
+
+        (defer-queue hinge)
+        (make-instance 'running-queue :owner hinge)))
 
 (defmethod close ((hinge hinge) &key &allow-other-keys)
+  (close (defer-queue hinge))
   (close (bg-pool hinge)))
 
 (defmethod run ((hinge (eql :default)))

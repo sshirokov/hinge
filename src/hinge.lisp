@@ -49,6 +49,8 @@ Set the watcher priority and bind the instance as the callback"
   ((bg-pool :accessor bg-pool
             :documentation "Background work threadpool")
 
+   (defer-queue :accessor defer-queue)
+
    (emit-queue :accessor emit-queue
                :initform (make-instance 'queue)
                :documentation "Queue of event emissions.")
