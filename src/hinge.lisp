@@ -16,7 +16,7 @@
   ((owner :initarg :owner :accessor owner)
 
    (queue :initform (make-instance 'queue) :accessor queue)
-   (priority :initform 0 :accessor priority)
+   (priority :initarg :priority :initform 0 :accessor priority)
    (runner :initform (make-instance 'ev:ev-idle) :accessor runner))
   (:metaclass c2mop:funcallable-standard-class)
   (:documentation "A wrapper that binds together a queue and an idle runner
@@ -49,18 +49,10 @@ Set the watcher priority and bind the instance as the callback"
   ((bg-pool :accessor bg-pool
             :documentation "Background work threadpool")
 
-   (defer-queue :accessor defer-queue)
-
-   (emit-queue :accessor emit-queue
-               :initform (make-instance 'queue)
-               :documentation "Queue of event emissions.")
-   (emit-runner :initform nil
-                :accessor emit-runner
-                :documentation "The queue runner of the `emit-queue'")
-
-   (deliver-queue :accessor deliver-queue
-                  :initform (make-instance 'queue)
-                  :documentation "Queue of event deliveries.")
-   (deliver-runner :initform nil
-                   :accessor deliver-runner
-                   :documentation "The queue runner of the `deliver-queue'")))
+   (queues :initform '((:low . 0)
+                       (:normal . 1)
+                       (:high . 2))
+           :accessor queues
+           :documentation "A set of work queues.
+If an alist of (:name . priority) it will be transformed
+to a hashtable of {:name => (ev:idle-watcher :priority priority)}")))
