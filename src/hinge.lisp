@@ -49,6 +49,14 @@ Set the watcher priority and bind the instance as the callback"
   ((bg-pool :accessor bg-pool
             :documentation "Background work threadpool")
 
+   (queues :initform '((:low . 0)
+                       (:normal . 1)
+                       (:high . 2))
+           :accessor queues
+           :documentation "A set of work queues.
+If an alist of (:name . priority) it will be transformed
+to a hashtable of {:name => (ev:idle-watcher :priority priority)}")
+
    (defer-queue :accessor defer-queue)
 
    (emit-queue :accessor emit-queue

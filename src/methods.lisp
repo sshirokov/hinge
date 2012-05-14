@@ -2,6 +2,18 @@
 
 ;; Methods
 (defmethod initialize-instance :after ((hinge hinge) &key)
+  (when-let (q-desc (and (listp (queues hinge)) (every #'consp (queues hinge))
+                         (queues hinge)))
+    (setf (queues hinge) (make-hash-table))
+    (mapc #'(lambda (name-priority)
+              (destructuring-bind (name . priority) name-priority
+                (format t "=> Making queue: ~S => ~S~%" name priority)
+
+                (setf (gethash name (queues hinge))
+                      (make-instance 'running-queue :owner hinge :priority priority))))
+          q-desc))
+
+
   (setf (bg-pool hinge)
         (make-instance 'pool :owner hinge)
 
@@ -9,6 +21,10 @@
         (make-instance 'running-queue :owner hinge)))
 
 (defmethod close ((hinge hinge) &key &allow-other-keys)
+  (maphash #'(lambda (name queue)
+               (declare (ignore name))
+               (close queue))
+           (queues hinge))
   (close (defer-queue hinge))
   (close (bg-pool hinge)))
 
