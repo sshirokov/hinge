@@ -20,6 +20,10 @@
         (defer-queue hinge)
         (make-instance 'running-queue :owner hinge)))
 
+(defmethod queue-work ((hinge hinge) work &optional (queue :low))
+  "Enqueue the `work' thunk into the `queue' queue within `hinge'"
+  (enqueue (gethash queue (queues hinge)) work))
+
 (defmethod close ((hinge hinge) &key &allow-other-keys)
   (maphash #'(lambda (name queue)
                (declare (ignore name))

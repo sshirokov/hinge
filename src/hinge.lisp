@@ -57,8 +57,6 @@ Set the watcher priority and bind the instance as the callback"
 If an alist of (:name . priority) it will be transformed
 to a hashtable of {:name => (ev:idle-watcher :priority priority)}")
 
-   (defer-queue :accessor defer-queue)
-
    (emit-queue :accessor emit-queue
                :initform (make-instance 'queue)
                :documentation "Queue of event emissions.")
