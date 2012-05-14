@@ -2,6 +2,7 @@
 
 ;; Methods
 (defmethod initialize-instance :after ((hinge hinge) &key)
+  "Remap the queues descriptions to an HT, then init the pool"
   (when-let (q-desc (and (listp (queues hinge)) (every #'consp (queues hinge))
                          (queues hinge)))
     (setf (queues hinge) (make-hash-table))
@@ -14,11 +15,7 @@
           q-desc))
 
 
-  (setf (bg-pool hinge)
-        (make-instance 'pool :owner hinge)
-
-        (defer-queue hinge)
-        (make-instance 'running-queue :owner hinge)))
+  (setf (bg-pool hinge) (make-instance 'pool :owner hinge)))
 
 (defmethod queue-work ((hinge hinge) work &optional (queue :low))
   "Enqueue the `work' thunk into the `queue' queue within `hinge'"
@@ -29,7 +26,6 @@
                (declare (ignore name))
                (close queue))
            (queues hinge))
-  (close (defer-queue hinge))
   (close (bg-pool hinge)))
 
 (defmethod run ((hinge (eql :default)))

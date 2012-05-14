@@ -46,27 +46,8 @@ only fires once, then it is removed."))
     (flet ((queue-cb (cb)
              (when (remhash cb (oneshots emitter))
                (remove-listener emitter event cb))
-             (enqueue (deliver-queue (owner emitter)) (lambda () (apply cb args)))))
+             (queue-work (owner emitter) (curry #'apply cb args) :normal)))
       (mapc #'queue-cb registered))))
-
-(defmethod deliver :after ((emitter emitter) event args)
-  (declare (ignore event args))
-  (flet ((deliver-cb (l w e)
-           (declare (ignore l e))
-           (log-for (debug) "Deliver queue: ~S" (deliver-queue (owner emitter)))
-           (if-let (thunk (dequeue (deliver-queue (owner emitter))))
-             (funcall thunk)
-             (ev:stop-watcher (owner emitter) w :keep-callback t))))
-
-    (unless (deliver-runner (owner emitter))
-      (setf (deliver-runner (owner emitter))
-            (let ((watcher (make-instance 'ev:ev-idle)))
-              (ev:set-idle (owner emitter) watcher #'deliver-cb)
-              (incf (ev:watcher-slot watcher :priority))
-              watcher)))
-
-    (unless (queue-empty-p (deliver-queue (owner emitter)))
-      (ev:start-watcher (owner emitter) (deliver-runner (owner emitter))))))
 
 (defmethod emit ((emitter emitter) (event string) &rest args)
   "Enqueue the delivery of an `event' with `args'. The event will
@@ -74,24 +55,7 @@ be delivered at some point in the future, but very soon, in the order
 that it was emitted relative to other events."
   (flet ((emit-thunk ()
            (deliver emitter event args)))
-    (enqueue (emit-queue (owner emitter)) #'emit-thunk)))
-
-(defmethod emit :after ((emitter emitter) (event string) &rest args)
-  (declare (ignore args))
-  (flet ((emitter-cb (l w e)
-           (declare (ignore l e))
-           (log-for (debug) "Emit queue: ~S" (emit-queue (owner emitter)))
-           (if-let (thunk (dequeue (emit-queue (owner emitter))))
-             (funcall thunk)
-             (ev:stop-watcher (owner emitter) w :keep-callback t))))
-
-    (unless (emit-runner (owner emitter))
-      (setf (emit-runner (owner emitter))
-            (let ((watcher (make-instance 'ev:ev-idle)))
-              (ev:set-idle (owner emitter) watcher #'emitter-cb)
-              watcher)))
-
-    (ev:start-watcher (owner emitter) (emit-runner (owner emitter)))))
+    (queue-work (owner emitter) #'emit-thunk)))
 
 (defmethod add-listener ((emitter emitter) (event string) (callback symbol))
   (add-listener emitter event (symbol-function callback)))

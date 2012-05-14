@@ -55,18 +55,4 @@ Set the watcher priority and bind the instance as the callback"
            :accessor queues
            :documentation "A set of work queues.
 If an alist of (:name . priority) it will be transformed
-to a hashtable of {:name => (ev:idle-watcher :priority priority)}")
-
-   (emit-queue :accessor emit-queue
-               :initform (make-instance 'queue)
-               :documentation "Queue of event emissions.")
-   (emit-runner :initform nil
-                :accessor emit-runner
-                :documentation "The queue runner of the `emit-queue'")
-
-   (deliver-queue :accessor deliver-queue
-                  :initform (make-instance 'queue)
-                  :documentation "Queue of event deliveries.")
-   (deliver-runner :initform nil
-                   :accessor deliver-runner
-                   :documentation "The queue runner of the `deliver-queue'")))
+to a hashtable of {:name => (ev:idle-watcher :priority priority)}")))
