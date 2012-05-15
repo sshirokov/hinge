@@ -3,6 +3,10 @@ Hinge. A synonym for node.
 An evented framework for Common Lisp.
 Driven by [libev](http://software.schmorp.de/pkg/libev.html), like the cool kids.
 
+Check out the [wiki](https://github.com/sshirokov/hinge/wiki) for docs and writeups
+and stop by the `#hinge` channel on [Freenode](http://freenode.net/irc_servers.shtml)
+to bug me in real time.
+
 ## Requirements
 
 ### System level dependencies
@@ -21,50 +25,6 @@ These deps are fetched and built with `make develop`
 * [cl-ev](https://github.com/sbryant/cl-ev)
 * [CFFI](http://common-lisp.net/project/cffi/) (Built from git, to support lisp-zmq)
 * [lisp-zmq](https://github.com/galdor/lisp-zmq)
-
-## Concepts and Principles
-
-### Event emitters
-
-As introduced and described in the Node.js docs. Event emitters
-allow you to emit an event named by a string with some parameters
-and have a chain of callbacks invoked that are expecting that
-event with the parameters.
-
-The events of hinge are sent and delivered asyncronously
-so that a long chain of event subscribers will not block the event
-machine execution.
-
-### TCP Servers and Clients
-
-Modeled after the Node.js net.* APIs, provides event emitting
-classes that abstract network communication to a set of emitted
-"data" events and a write scheduler that allows IO to be deferred
-until the socket is ready.
-
-### ZMQ Sockets
-
-Wrapped around the implementations of the TCP Socket and Server classes
-allow the delivery of ZeroMQ messages as emitted "data" events and allows
-the handling of blocking ZeroMQ socket sends with a callback.
-
-### Async parallel work pool(s) with calling-thread-local, event-friendly result callbacks
-
-Allows the submission of work with bound callbacks for the successfull or
-failed execution of a set of forms in a thead pool. The result or error
-will be delivered asynchronously to the thread controlling the event loop
-while the work will be evaluated outside of it.
-
-## TODO
-
-Multipart ZeroMQ messages are not supported. They deserve minor special treatment.
-
-The ZeroMQ sockets currently require access to the `sock` slot to perform non-IO operations such
-as setting socket options. This is not permanent.
-
-There are some example codes in the [examples](https://github.com/sshirokov/hinge/tree/master/examples)
-directory of the project root that have been used to develop the concepts they demonstrate with some
-comments. They might serve to make some more sense out of how this project could be applied.
 
 ## Quickstart
 
