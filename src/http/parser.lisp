@@ -55,7 +55,7 @@ When the machine arrives in the `:done' state the `http-method', `resource' and
   (:default-initargs . (:state :key-or-done)))
 
 (defmethod initialize-instance :after ((fsm header-fsm) &key)
-  "Rest the key- and value- buffers to fresh string output streams"
+  "Reset the key- and value- buffers to fresh string output streams"
   (setf (key-buffer fsm) (make-string-output-stream)
         (value-buffer fsm) (make-string-output-stream)))
 
