@@ -8,8 +8,6 @@
     (setf (queues hinge) (make-hash-table))
     (mapc #'(lambda (name-priority)
               (destructuring-bind (name . priority) name-priority
-                (format t "=> Making queue: ~S => ~S~%" name priority)
-
                 (setf (gethash name (queues hinge))
                       (make-instance 'running-queue :owner hinge :priority priority))))
           q-desc))
