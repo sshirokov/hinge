@@ -3,10 +3,13 @@
 ;; HTTP Parser
 ;;; Request line parser
 (deffsm request-fsm ()
-  ((http-method :initform (string "") :accessor http-method)
-   (resource :initform (string "") :accessor resource)
-   (version :initform (string "") :accessor version))
-  (:default-initargs . (:state :read-http-method)))
+  ((http-method :initform (make-string-output-stream) :accessor http-method)
+   (resource :initform (make-string-output-stream) :accessor resource)
+   (version :initform (make-string-output-stream) :accessor version))
+  (:default-initargs . (:state :read-http-method))
+  (:documentation "The request line parser FSM.
+When the machine arrives in the `:done' state the `http-method', `resource' and
+`version' slots are converted into strings."))
 
 (defun whitespace-p (code)
   "Is the `code' a code-char for a whitespace char?"
@@ -14,7 +17,7 @@
 
 (defstate request-fsm :read-http-method (fsm cc)
   (if (not (whitespace-p cc))
-      (not (setf (http-method fsm) (concatenate 'string (http-method fsm) (list (code-char cc)))))
+      (not (write-char (code-char cc) (http-method fsm)))
 
       (if (char-equal (code-char cc) #\Space)
           :read-resource
@@ -22,7 +25,7 @@
 
 (defstate request-fsm :read-resource (fsm cc)
   (if (not (whitespace-p cc))
-      (not (setf (resource fsm) (concatenate 'string (resource fsm) (list (code-char cc)))))
+      (not (write-char (code-char cc) (resource fsm)))
 
       (if (char-equal (code-char cc) #\Space)
           :read-version
@@ -30,7 +33,7 @@
 
 (defstate request-fsm :read-version (fsm cc)
   (if (not (whitespace-p cc))
-      (not (setf (version fsm) (concatenate 'string (version fsm) (list (code-char cc)))))
+      (not (write-char (code-char cc) (version fsm)))
 
       (if (char-equal (code-char cc) #\Return)
           :seek-newline
@@ -38,7 +41,10 @@
 
 (defstate request-fsm :seek-newline (fsm cc)
   (if (char-equal (code-char cc) #\Newline)
-      :done
+      (prog1 :done
+        (setf (http-method fsm) (get-output-stream-string (http-method fsm))
+              (resource fsm) (get-output-stream-string (resource fsm))
+              (version fsm) (get-output-stream-string (version fsm))))
       :error))
 
 ;;; Header block parser
