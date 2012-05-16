@@ -44,14 +44,19 @@
 ;;; Header block parser
 (deffsm header-fsm ()
   ((headers :initform (list) :accessor headers)
-   (key-buffer :initform (string "") :accessor key-buffer)
-   (value-buffer :initform (string "") :accessor value-buffer))
+   (key-buffer :accessor key-buffer)
+   (value-buffer :accessor value-buffer))
   (:default-initargs . (:state :key-or-done)))
+
+(defmethod initialize-instance :after ((fsm header-fsm) &key)
+  "Rest the key- and value- buffers to fresh string output streams"
+  (setf (key-buffer fsm) (make-string-output-stream)
+        (value-buffer fsm) (make-string-output-stream)))
 
 (defstate header-fsm :read-key (fsm cc)
   (cond ((not (or (char-equal (code-char cc) #\:)
                   (whitespace-p cc)))
-         (not (setf (key-buffer fsm) (concatenate 'string (key-buffer fsm) (list (code-char cc))))))
+         (not (write-char (code-char cc) (key-buffer fsm))))
 
         ((char-equal (code-char cc) #\:)
          :read-space)
@@ -66,12 +71,13 @@
 
 (defstate header-fsm :read-value (fsm cc)
   (cond ((not (member (code-char cc) '(#\Newline #\Return)))
-         (not (setf (value-buffer fsm) (concatenate 'string (value-buffer fsm) (list (code-char cc))))))
+         (not (write-char (code-char cc) (value-buffer fsm))))
 
         ((char-equal (code-char cc) #\Return)
-         (push (cons (key-buffer fsm) (value-buffer fsm)) (headers fsm))
-         (setf (key-buffer fsm) (string "")
-               (value-buffer fsm) (string ""))
+         (push (cons (get-output-stream-string (key-buffer fsm))
+                     (get-output-stream-string (value-buffer fsm)))
+               (headers fsm))
+         (initialize-instance fsm)
          :read-newline)
 
         (:otherwise
