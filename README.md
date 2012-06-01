@@ -14,6 +14,7 @@ to bug me in real time.
 * [libev](http://software.schmorp.de/pkg/libev.html)
 * [ZeroMQ](http://www.zeromq.org/) (2.1.11+)
 * [SBCL](http://www.sbcl.org/) (With thread support)
+* [curl](http://curl.haxx.se/) (Required by `make develop`)
 
 [CCL](http://ccl.clozure.com/) is also supported, but SBCL is the
 primary development platform, and is favored in the makefiles.
